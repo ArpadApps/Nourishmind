@@ -297,8 +297,6 @@ function MessageBubble({ msg }) {
   )
 }
 
-// ─── Ambient background ───────────────────────────────────────────────────
-
 // ─── Main component ────────────────────────────────────────────────────────
 
 export default function ChatScreen() {
@@ -317,7 +315,7 @@ export default function ChatScreen() {
   const memoryRef = useRef(memory)
   useEffect(() => { memoryRef.current = memory }, [memory])
 
-  const ambientRef = useRef(null)
+  const chatContainerRef = useRef(null)
 
   // Scroll to bottom on every update
   useEffect(() => {
@@ -363,10 +361,26 @@ export default function ChatScreen() {
       { id: `user-${Date.now()}`, from: 'user', text, streaming: false },
     ])
 
-    // Trigger warm pulse on send
-    if (ambientRef.current) {
-      ambientRef.current.classList.add('pulse-warm')
-      setTimeout(() => ambientRef.current?.classList.remove('pulse-warm'), 1000)
+    // Center pulse on send
+    const container = chatContainerRef.current
+    if (container) {
+      const pulse = document.createElement('div')
+      Object.assign(pulse.style, {
+        position: 'absolute',
+        top: '0', left: '0', width: '100%', height: '100%',
+        pointerEvents: 'none',
+        zIndex: '1',
+        background: 'radial-gradient(ellipse 40% 30% at 50% 50%, rgba(200,169,126,0.14) 0%, rgba(200,169,126,0.06) 40%, rgba(14,13,12,0) 70%)',
+        opacity: '1',
+        transition: 'opacity 2.5s ease-out, transform 2.5s ease-out',
+        transform: 'scale(1)',
+      })
+      container.appendChild(pulse)
+      requestAnimationFrame(() => {
+        pulse.style.opacity = '0'
+        pulse.style.transform = 'scale(2.5)'
+      })
+      setTimeout(() => pulse.remove(), 2500)
     }
 
     const noorMsgId = `noor-${Date.now()}`
@@ -445,8 +459,7 @@ export default function ChatScreen() {
   const atLimit = remaining === 0
 
   return (
-    <div className="chat-screen">
-      <div className="ambient-bg" ref={ambientRef} />
+    <div className="chat-screen" ref={chatContainerRef}>
 
       {/* ── Header ── */}
       <header className="chat-header">
