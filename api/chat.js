@@ -1,6 +1,16 @@
 export const config = { runtime: 'edge' }
 
 export default async function handler(req) {
+  // Debug: GET request returns env var status without exposing the value
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({
+      hasApiKey: !!process.env.ANTHROPIC_API_KEY,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
