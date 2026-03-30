@@ -143,9 +143,6 @@ function saveDailyCount(count) {
 // ─── Memory extraction ────────────────────────────────────────────────────
 
 async function extractMemoryUpdate(userMessage, noorResponse, existingMemory) {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-  if (!apiKey) return null
-
   const prompt = `Extract any personal information about the user from this conversation exchange. Return JSON only — no explanation, no markdown.
 
 Existing memory: ${JSON.stringify(existingMemory || {})}
@@ -159,13 +156,10 @@ Return a JSON object with any of these fields containing NEW information not alr
 For array fields include only new items not already present. For string fields only include if new or updated. If nothing new, return {}.`
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
@@ -188,20 +182,11 @@ For array fields include only new items not already present. For string fields o
 // ─── Anthropic API streaming ──────────────────────────────────────────────
 
 async function streamNoor(apiMessages, systemPrompt, onToken, onDone, onError) {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-  if (!apiKey) {
-    onError('NO_KEY')
-    return
-  }
-
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-6',
@@ -304,29 +289,6 @@ function MessageBubble({ msg }) {
   )
 }
 
-// ─── No API key notice ─────────────────────────────────────────────────────
-
-function NoKeyNotice() {
-  return (
-    <div className="no-key-notice">
-      <div className="no-key-inner">
-        <NoorAvatar size="large" />
-        <h2>One quick thing before we start</h2>
-        <p>
-          To talk with Noor, create a <code>.env</code> file in the project
-          root with your Anthropic API key:
-        </p>
-        <pre>VITE_ANTHROPIC_API_KEY=your_key_here</pre>
-        <p className="no-key-hint">
-          Then restart with <code>npm run dev</code>. Get your key at{' '}
-          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer">
-            console.anthropic.com
-          </a>
-        </p>
-      </div>
-    </div>
-  )
-}
 
 // ─── Main component ────────────────────────────────────────────────────────
 
@@ -337,7 +299,6 @@ export default function ChatScreen() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [showTyping, setShowTyping] = useState(false)
   const [ready, setReady] = useState(false)
-  const [noKey, setNoKey] = useState(false)
   const [memory, setMemory] = useState(() => loadMemory())
   const [dailyCount, setDailyCount] = useState(() => loadDailyCount())
 
@@ -461,8 +422,6 @@ export default function ChatScreen() {
       sendMessage()
     }
   }
-
-  if (noKey) return <NoKeyNotice />
 
   const hasMemory = memoryHasContent(memory)
   const remaining = Math.max(0, DAILY_CAP - dailyCount)
