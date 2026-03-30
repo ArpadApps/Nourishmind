@@ -19,12 +19,22 @@ export default function WelcomeScreen({ onStart, onTerms, onPrivacy }) {
           <span className="welcome-wordmark">NourishMind</span>
         </header>
 
+        <div className="welcome-hero-avatar-wrap">
+          <div className="welcome-hero-avatar-glow">
+            <img
+              src="/noor-avatar.png"
+              alt="Noor"
+              className="welcome-hero-avatar"
+            />
+          </div>
+        </div>
+
         <div className="welcome-hero">
           <p className="welcome-eyebrow">AI-Powered Longevity Science</p>
           <h1 className="welcome-headline">
             The truths about food<br />
             that change<br />
-            everything.
+            <span className="welcome-headline-gold">everything.</span>
           </h1>
           <p className="welcome-sub">
             For decades, what influenced what we ate was marketing — never designed to give your body what it actually needs to stay healthy long term. Noor updates you with the latest research, simply and clearly. Not a diet app. A permanent shift in how you think.

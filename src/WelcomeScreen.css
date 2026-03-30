@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
   padding: 48px 24px 56px;
-  background: #ffffff;
+  background: #0e0d0c;
 }
 
 /* ─── Inner layout ───────────────────────────────────────────────── */
@@ -27,7 +27,7 @@
 .nm-logo {
   width: 36px;
   height: 36px;
-  background: #111111;
+  background: #c8a97e;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -36,7 +36,7 @@
 }
 
 .nm-logo span {
-  color: #ffffff;
+  color: #0e0d0c;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -49,7 +49,32 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #111111;
+  color: #e8ddd0;
+}
+
+/* ─── Hero avatar ────────────────────────────────────────────────── */
+.welcome-hero-avatar-wrap {
+  margin-bottom: 40px;
+}
+
+.welcome-hero-avatar-glow {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,169,126,0.22) 0%, rgba(200,169,126,0.06) 60%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-hero-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  border: 1.5px solid rgba(200,169,126,0.3);
 }
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
@@ -62,30 +87,35 @@
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #999999;
+  color: #6b5e4e;
   margin-bottom: 20px;
 }
 
 .welcome-headline {
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: clamp(42px, 9vw, 60px);
   font-weight: 700;
-  color: #111111;
+  color: #e8ddd0;
   line-height: 1.05;
   letter-spacing: -0.02em;
   margin-bottom: 24px;
 }
 
+.welcome-headline-gold {
+  color: #c8a97e;
+}
+
 .welcome-sub {
   font-size: 16px;
-  color: #666666;
+  color: #8a7d6e;
   line-height: 1.7;
   max-width: 420px;
 }
 
 /* ─── Quote block ────────────────────────────────────────────────── */
 .welcome-quote-block {
-  background: #f3f3f3;
-  border-left: 2px solid #111111;
+  background: #17140f;
+  border-left: 2px solid #c8a97e;
   padding: 20px 24px;
   margin-bottom: 48px;
 }
@@ -106,26 +136,27 @@
 .welcome-cite-name {
   font-size: 13px;
   font-weight: 600;
-  color: #111111;
+  color: #e8ddd0;
 }
 
 .welcome-cite-role {
   font-size: 12px;
-  color: #999999;
+  color: #6b5e4e;
 }
 
 .welcome-quote {
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 16px;
   font-weight: 400;
-  font-style: normal;
-  color: #111111;
+  font-style: italic;
+  color: #c8b9a8;
   line-height: 1.6;
   margin: 0;
   padding: 0;
   border: none;
 }
 
-/* ─── Noor N avatar (quote) ──────────────────────────────────────── */
+/* ─── Noor avatar (quote) ────────────────────────────────────────── */
 .noor-n-avatar {
   width: 40px;
   height: 40px;
@@ -134,6 +165,7 @@
   object-position: center;
   flex-shrink: 0;
   display: block;
+  border: 1px solid #3d3228;
 }
 
 /* ─── CTA ────────────────────────────────────────────────────────── */
@@ -149,8 +181,8 @@
   font-family: inherit;
   font-size: 15px;
   font-weight: 600;
-  color: #ffffff;
-  background: #111111;
+  color: #0e0d0c;
+  background: #c8a97e;
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -160,16 +192,16 @@
 }
 
 .welcome-btn:hover {
-  opacity: 0.80;
+  opacity: 0.85;
 }
 
 .welcome-btn:active {
-  opacity: 0.65;
+  opacity: 0.70;
 }
 
 .welcome-reassurance {
   font-size: 13px;
-  color: #999999;
+  color: #6b5e4e;
 }
 
 /* ─── Pillars ────────────────────────────────────────────────────── */
@@ -184,7 +216,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #999999;
+  color: #6b5e4e;
   white-space: nowrap;
 }
 
@@ -192,14 +224,14 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #111111;
+  background: #c8a97e;
   flex-shrink: 0;
 }
 
 .pillar-divider {
   width: 1px;
   height: 12px;
-  background: #e8e8e8;
+  background: #3d3228;
   flex-shrink: 0;
 }
 
@@ -218,7 +250,7 @@
   border: none;
   font-family: inherit;
   font-size: 12px;
-  color: #bbbbbb;
+  color: #6b5e4e;
   cursor: pointer;
   padding: 0;
   transition: color 0.15s;
@@ -226,12 +258,12 @@
 }
 
 .welcome-footer-link:hover {
-  color: #666666;
+  color: #c8b9a8;
 }
 
 .welcome-footer-sep {
   font-size: 12px;
-  color: #dddddd;
+  color: #3d3228;
 }
 
 /* ─── Mobile ─────────────────────────────────────────────────────── */

@@ -3,7 +3,7 @@
   height: 100svh;
   display: flex;
   flex-direction: column;
-  background: #e8e8e8;
+  background: #0e0d0c;
   overflow: hidden;
 }
 
@@ -13,8 +13,8 @@
   align-items: center;
   gap: 12px;
   padding: 16px 22px;
-  background: #ffffff;
-  border-bottom: 0.5px solid #e8e8e8;
+  background: #17140f;
+  border-bottom: 0.5px solid #3d3228;
   flex-shrink: 0;
   z-index: 10;
 }
@@ -29,7 +29,7 @@
 .chat-header-name {
   font-size: 15px;
   font-weight: 600;
-  color: #111111;
+  color: #e8ddd0;
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
@@ -39,21 +39,21 @@
   align-items: center;
   gap: 5px;
   font-size: 11.5px;
-  color: #999999;
+  color: #6b5e4e;
 }
 
 .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #22c55e;
+  background: #c8a97e;
   flex-shrink: 0;
   animation: pulse 2.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50% { opacity: 0.4; }
 }
 
 .chat-header-brand {
@@ -69,7 +69,7 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #999999;
+  color: #6b5e4e;
 }
 
 /* ─── Memory badge ───────────────────────────────────────────────── */
@@ -78,7 +78,7 @@
   align-items: center;
   gap: 5px;
   font-size: 10.5px;
-  color: #888888;
+  color: #8a7d6e;
   letter-spacing: 0.02em;
 }
 
@@ -86,7 +86,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #22c55e;
+  background: #c8a97e;
   flex-shrink: 0;
 }
 
@@ -98,6 +98,7 @@
   flex-shrink: 0;
   display: block;
   image-rendering: -webkit-optimize-contrast;
+  border: 1px solid #3d3228;
 }
 
 .noor-avatar--message {
@@ -120,7 +121,7 @@
 .chat-messages-gradient {
   flex: 1;
   position: relative;
-  background: linear-gradient(180deg, #aaaaaa 0%, #dedede 100%);
+  background: linear-gradient(180deg, #0e0d0c 0%, #17140f 100%);
   overflow: hidden;
 }
 
@@ -139,7 +140,7 @@
 .chat-messages::-webkit-scrollbar { width: 4px; }
 .chat-messages::-webkit-scrollbar-track { background: transparent; }
 .chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.15);
+  background: rgba(200,169,126,0.15);
   border-radius: 2px;
 }
 
@@ -183,16 +184,17 @@
 .message-bubble p { margin: 0; }
 
 .message--noor .message-bubble {
-  background: #ffffff;
-  border: 1px solid #cccccc;
+  background: #17140f;
+  border: 1px solid #3d3228;
   border-radius: 4px 18px 18px 18px;
-  color: #111111;
+  color: #e8ddd0;
 }
 
 .message--user .message-bubble {
-  background: #a8a8a8;
+  background: #2a2118;
+  border: 1px solid #3d3228;
   border-radius: 18px 4px 18px 18px;
-  color: #111111;
+  color: #c8b9a8;
 }
 
 /* ─── Streaming cursor ───────────────────────────────────────────── */
@@ -200,7 +202,7 @@
   display: inline-block;
   width: 2px;
   height: 1.1em;
-  background: #666666;
+  background: #c8a97e;
   border-radius: 1px;
   margin-left: 2px;
   vertical-align: text-bottom;
@@ -218,7 +220,8 @@
   align-items: center;
   gap: 5px;
   padding: 14px 18px;
-  background: #f7f7f7;
+  background: #17140f;
+  border: 1px solid #3d3228;
   border-radius: 16px;
   border-bottom-left-radius: 4px;
 }
@@ -228,7 +231,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #999999;
+  background: #6b5e4e;
   animation: typingBounce 1.3s ease-in-out infinite;
 }
 
@@ -243,8 +246,8 @@
 /* ─── Footer / Input ─────────────────────────────────────────────── */
 .chat-footer {
   padding: 14px 22px 20px;
-  background: #ffffff;
-  border-top: 0.5px solid #cccccc;
+  background: #17140f;
+  border-top: 0.5px solid #3d3228;
   flex-shrink: 0;
 }
 
@@ -252,15 +255,15 @@
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  background: #ffffff;
-  border: 0.5px solid #e8e8e8;
+  background: #0e0d0c;
+  border: 0.5px solid #3d3228;
   border-radius: 12px;
   padding: 10px 10px 10px 18px;
   transition: border-color 0.15s ease;
 }
 
 .chat-input-wrap:focus-within {
-  border-color: #111111;
+  border-color: #c8a97e;
 }
 
 .chat-input {
@@ -270,7 +273,7 @@
   outline: none;
   font-family: inherit;
   font-size: 15px;
-  color: #111111;
+  color: #e8ddd0;
   line-height: 1.55;
   resize: none;
   max-height: 140px;
@@ -278,16 +281,16 @@
   padding: 0;
 }
 
-.chat-input::placeholder { color: #999999; }
+.chat-input::placeholder { color: #6b5e4e; }
 .chat-input::-webkit-scrollbar { width: 0; }
 
 .chat-send {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #111111;
+  background: #c8a97e;
   border: none;
-  color: #ffffff;
+  color: #0e0d0c;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -296,8 +299,8 @@
   transition: opacity 0.15s ease;
 }
 
-.chat-send:hover:not(:disabled)  { opacity: 0.78; }
-.chat-send:active:not(:disabled) { opacity: 0.60; }
+.chat-send:hover:not(:disabled)  { opacity: 0.82; }
+.chat-send:active:not(:disabled) { opacity: 0.65; }
 .chat-send:disabled {
   opacity: 0.22;
   cursor: not-allowed;
@@ -305,7 +308,7 @@
 
 .chat-hint {
   font-size: 11px;
-  color: #999999;
+  color: #6b5e4e;
   text-align: center;
   margin-top: 8px;
   letter-spacing: 0.02em;
@@ -313,7 +316,7 @@
 
 .chat-limit-msg {
   font-size: 12px;
-  color: #aaaaaa;
+  color: #6b5e4e;
   text-align: center;
   margin-top: 10px;
   letter-spacing: 0.01em;
@@ -326,7 +329,7 @@
   align-items: center;
   justify-content: center;
   padding: 32px 24px;
-  background: #ffffff;
+  background: #0e0d0c;
 }
 
 .no-key-inner {
@@ -340,38 +343,38 @@
 
 .no-key-inner h2 {
   font-size: 24px;
-  color: #111111;
+  color: #e8ddd0;
 }
 
 .no-key-inner p {
   font-size: 15px;
-  color: #666666;
+  color: #8a7d6e;
   line-height: 1.6;
 }
 
 .no-key-inner pre {
-  background: #f7f7f7;
-  border: 0.5px solid #e8e8e8;
+  background: #17140f;
+  border: 0.5px solid #3d3228;
   border-radius: 8px;
   padding: 14px 20px;
   font-size: 13px;
-  color: #111111;
+  color: #e8ddd0;
   font-family: 'Courier New', monospace;
   width: 100%;
   text-align: left;
 }
 
 .no-key-inner code {
-  background: #f7f7f7;
+  background: #17140f;
   border-radius: 4px;
   padding: 1px 5px;
   font-size: 13px;
-  color: #111111;
+  color: #c8a97e;
   font-family: 'Courier New', monospace;
 }
 
 .no-key-hint   { font-size: 13px !important; }
-.no-key-inner a { color: #111111; }
+.no-key-inner a { color: #c8a97e; }
 
 /* ─── Mobile ─────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
