@@ -300,12 +300,14 @@ function useAmbientCanvas(canvasRef, pulseRef, receiveRef) {
     let time = 0
 
     function resize() {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
+      const container = canvas.parentElement
+      canvas.width = container ? container.offsetWidth : canvas.offsetWidth
+      canvas.height = container ? container.offsetHeight : canvas.offsetHeight
     }
     resize()
     window.addEventListener('resize', resize)
 
+    let firstFrame = true
     function draw() {
       const w = canvas.width
       const h = canvas.height
@@ -313,6 +315,11 @@ function useAmbientCanvas(canvasRef, pulseRef, receiveRef) {
       if (!w || !h) {
         animFrame = requestAnimationFrame(draw)
         return
+      }
+
+      if (firstFrame) {
+        console.log('[AmbientCanvas] animation running, size:', w, 'x', h)
+        firstFrame = false
       }
 
       time += 0.008

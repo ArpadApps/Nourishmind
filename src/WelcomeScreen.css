@@ -102,8 +102,8 @@
 }
 
 .welcome-avatar {
-  width: 80px;
-  height: 80px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
   object-fit: cover;
   object-position: center;
@@ -205,18 +205,6 @@
 }
 
 /* ─── Mobile ─────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .welcome-avatar-glow {
-    width: 160px;
-    height: 160px;
-  }
-
-  .welcome-avatar {
-    width: 140px;
-    height: 140px;
-  }
-}
-
 @media (max-width: 480px) {
   .welcome {
     padding: 40px 20px 32px;
