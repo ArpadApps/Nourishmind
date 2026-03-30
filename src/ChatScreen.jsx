@@ -289,6 +289,82 @@ function MessageBubble({ msg }) {
   )
 }
 
+// ─── Ambient canvas background ────────────────────────────────────────────
+
+function useAmbientCanvas(canvasRef, pulseRef, receiveRef) {
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let animFrame = null
+    let time = 0
+
+    function resize() {
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    function draw() {
+      const w = canvas.width
+      const h = canvas.height
+
+      if (!w || !h) {
+        animFrame = requestAnimationFrame(draw)
+        return
+      }
+
+      time += 0.008
+
+      // Base fill
+      ctx.fillStyle = '#0e0d0c'
+      ctx.fillRect(0, 0, w, h)
+
+      // Breathing radial gradient
+      const cx = w * 0.5 + Math.sin(time * 0.04) * w * 0.12
+      const cy = h * 0.55 + Math.cos(time * 0.03) * h * 0.08
+      const r = h * 0.85
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+      grad.addColorStop(0, 'rgba(42,32,20,0.22)')
+      grad.addColorStop(1, 'rgba(14,13,12,0)')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, w, h)
+
+      // Warm pulse — triggered on user send
+      if (pulseRef.current > 0) {
+        const pt = pulseRef.current
+        const pr = h * 0.6 * (1 - pt * 0.3)
+        const pGrad = ctx.createRadialGradient(w * 0.5, h, 0, w * 0.5, h, pr)
+        pGrad.addColorStop(0, `rgba(200,169,126,${(pt * 0.08).toFixed(4)})`)
+        pGrad.addColorStop(1, 'rgba(200,169,126,0)')
+        ctx.fillStyle = pGrad
+        ctx.fillRect(0, 0, w, h)
+        pulseRef.current = Math.max(0, pulseRef.current - 0.012)
+      }
+
+      // Tonal shift — triggered on Noor message received
+      if (receiveRef.current > 0) {
+        const rt = receiveRef.current
+        const rGrad = ctx.createRadialGradient(w * 0.5, 0, 0, w * 0.5, 0, h * 0.7)
+        rGrad.addColorStop(0, `rgba(58,38,18,${(rt * 0.06).toFixed(4)})`)
+        rGrad.addColorStop(1, 'rgba(58,38,18,0)')
+        ctx.fillStyle = rGrad
+        ctx.fillRect(0, 0, w, h)
+        receiveRef.current = Math.max(0, receiveRef.current - 0.008)
+      }
+
+      animFrame = requestAnimationFrame(draw)
+    }
+
+    animFrame = requestAnimationFrame(draw)
+
+    return () => {
+      window.removeEventListener('resize', resize)
+      if (animFrame) cancelAnimationFrame(animFrame)
+    }
+  }, [canvasRef, pulseRef, receiveRef])
+}
 
 // ─── Main component ────────────────────────────────────────────────────────
 
@@ -307,6 +383,12 @@ export default function ChatScreen() {
   const openingFired = useRef(false)
   const memoryRef = useRef(memory)
   useEffect(() => { memoryRef.current = memory }, [memory])
+
+  // Ambient canvas refs
+  const canvasRef = useRef(null)
+  const pulseRef = useRef(0)
+  const receiveRef = useRef(0)
+  useAmbientCanvas(canvasRef, pulseRef, receiveRef)
 
   // Scroll to bottom on every update
   useEffect(() => {
@@ -352,6 +434,9 @@ export default function ChatScreen() {
       { id: `user-${Date.now()}`, from: 'user', text, streaming: false },
     ])
 
+    // Trigger warm pulse on send
+    pulseRef.current = 1.0
+
     const noorMsgId = `noor-${Date.now()}`
     let noorText = ''
 
@@ -384,6 +469,9 @@ export default function ChatScreen() {
         ])
         setIsStreaming(false)
         setTimeout(() => inputRef.current?.focus(), 50)
+
+        // Trigger tonal shift on receive
+        receiveRef.current = 1.0
 
         // Fire-and-forget: extract and persist any new user info
         extractMemoryUpdate(text, noorText, currentMemory).then(updates => {
@@ -452,6 +540,7 @@ export default function ChatScreen() {
 
       {/* ── Messages ── */}
       <div className="chat-messages-gradient">
+        <canvas ref={canvasRef} className="ambient-canvas" aria-hidden="true" />
         <main
           className="chat-messages"
           aria-live="polite"
