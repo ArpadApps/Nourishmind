@@ -18,7 +18,7 @@
   border-bottom: 0.5px solid #3d3228;
   flex-shrink: 0;
   position: relative;
-  z-index: 10;
+  z-index: 20;
 }
 
 .chat-header-info {
@@ -191,7 +191,8 @@
   border: 1px solid #3d3228;
   border-radius: 4px 18px 18px 18px;
   color: #e8ddd0;
-  box-shadow: 0 0 18px rgba(200,169,126,0.10), 0 0 4px rgba(200,169,126,0.06);
+  box-shadow: 0 0 16px rgba(200,169,126,0.08), 0 0 4px rgba(200,169,126,0.05);
+  animation: noorBubbleIn 400ms ease forwards;
 }
 
 .message--user .message-bubble {
@@ -199,6 +200,7 @@
   border: 1px solid #3d3228;
   border-radius: 18px 4px 18px 18px;
   color: #c8b9a8;
+  animation: userBubbleIn 200ms ease forwards;
 }
 
 /* ─── Bubble entry animations ────────────────────────────────────── */
@@ -210,14 +212,6 @@
 @keyframes userBubbleIn {
   from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }
-}
-
-.message--noor .message-bubble {
-  animation: noorBubbleIn 400ms ease forwards;
-}
-
-.message--user .message-bubble {
-  animation: userBubbleIn 200ms ease forwards;
 }
 
 /* ─── Streaming cursor ───────────────────────────────────────────── */
@@ -273,7 +267,7 @@
   border-top: 0.5px solid #3d3228;
   flex-shrink: 0;
   position: relative;
-  z-index: 10;
+  z-index: 20;
 }
 
 .chat-input-wrap {

@@ -371,7 +371,7 @@ export default function ChatScreen() {
         top: '0', left: '0', width: '100%', height: '100%',
         pointerEvents: 'none',
         zIndex: '1',
-        background: 'radial-gradient(ellipse 40% 30% at 50% 50%, rgba(200,169,126,0.14) 0%, rgba(200,169,126,0.06) 40%, rgba(14,13,12,0) 70%)',
+        background: 'radial-gradient(ellipse 40% 30% at 50% 50%, rgba(200,169,126,0.07) 0%, rgba(200,169,126,0.03) 40%, rgba(14,13,12,0) 70%)',
         opacity: '1',
         transition: 'opacity 2.5s ease-out, transform 2.5s ease-out',
         transform: 'scale(1)',
