@@ -1,0 +1,226 @@
+/* ─── Page ───────────────────────────────────────────────────────── */
+.welcome {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px 56px;
+  background: #ffffff;
+}
+
+/* ─── Inner layout ───────────────────────────────────────────────── */
+.welcome-inner {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Brand ──────────────────────────────────────────────────────── */
+.welcome-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 64px;
+}
+
+.nm-logo {
+  width: 36px;
+  height: 36px;
+  background: #111111;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nm-logo span {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  user-select: none;
+}
+
+.welcome-wordmark {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #111111;
+}
+
+/* ─── Hero ───────────────────────────────────────────────────────── */
+.welcome-hero {
+  margin-bottom: 48px;
+}
+
+.welcome-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #999999;
+  margin-bottom: 20px;
+}
+
+.welcome-headline {
+  font-size: clamp(42px, 9vw, 60px);
+  font-weight: 700;
+  color: #111111;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+.welcome-sub {
+  font-size: 16px;
+  color: #666666;
+  line-height: 1.7;
+  max-width: 420px;
+}
+
+/* ─── Quote block ────────────────────────────────────────────────── */
+.welcome-quote-block {
+  background: #f3f3f3;
+  border-left: 2px solid #111111;
+  padding: 20px 24px;
+  margin-bottom: 48px;
+}
+
+.welcome-quote-noor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.welcome-quote-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.welcome-cite-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111111;
+}
+
+.welcome-cite-role {
+  font-size: 12px;
+  color: #999999;
+}
+
+.welcome-quote {
+  font-size: 16px;
+  font-weight: 400;
+  font-style: normal;
+  color: #111111;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* ─── Noor N avatar (quote) ──────────────────────────────────────── */
+.noor-n-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  flex-shrink: 0;
+  display: block;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* ─── CTA ────────────────────────────────────────────────────────── */
+.welcome-cta {
+  margin-bottom: 48px;
+}
+
+.welcome-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 28px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #111111;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  letter-spacing: 0.01em;
+  margin-bottom: 14px;
+}
+
+.welcome-btn:hover {
+  opacity: 0.80;
+}
+
+.welcome-btn:active {
+  opacity: 0.65;
+}
+
+.welcome-reassurance {
+  font-size: 13px;
+  color: #999999;
+}
+
+/* ─── Pillars ────────────────────────────────────────────────────── */
+.welcome-pillars {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pillar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #999999;
+  white-space: nowrap;
+}
+
+.pillar-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #111111;
+  flex-shrink: 0;
+}
+
+.pillar-divider {
+  width: 1px;
+  height: 12px;
+  background: #e8e8e8;
+  flex-shrink: 0;
+}
+
+/* ─── Mobile ─────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .welcome {
+    padding: 36px 20px 48px;
+    align-items: flex-start;
+  }
+
+  .welcome-brand {
+    margin-bottom: 48px;
+  }
+
+  .welcome-pillars {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pillar-divider {
+    display: none;
+  }
+}

@@ -1,0 +1,39 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --white:        #ffffff;
+  --surface:      #f7f7f7;
+  --surface-2:    #f3f3f3;
+  --border:       #e8e8e8;
+  --text:         #111111;
+  --text-body:    #333333;
+  --text-sec:     #666666;
+  --text-label:   #999999;
+
+  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-body);
+  background: var(--white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body { margin: 0; }
+
+#root {
+  width: 100%;
+  min-height: 100svh;
+}
+
+h1, h2, h3 {
+  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+p { margin: 0; }
