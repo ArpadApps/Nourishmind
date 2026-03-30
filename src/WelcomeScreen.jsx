@@ -10,7 +10,7 @@ function NoorN() {
   )
 }
 
-export default function WelcomeScreen({ onStart }) {
+export default function WelcomeScreen({ onStart, onTerms, onPrivacy }) {
   return (
     <div className="welcome">
       <div className="welcome-inner">
@@ -71,6 +71,12 @@ export default function WelcomeScreen({ onStart }) {
           </div>
         </div>
       </div>
+
+      <footer className="welcome-footer">
+        <button className="welcome-footer-link" onClick={onTerms}>Terms of Service</button>
+        <span className="welcome-footer-sep">·</span>
+        <button className="welcome-footer-link" onClick={onPrivacy}>Privacy Policy</button>
+      </footer>
     </div>
   )
 }
