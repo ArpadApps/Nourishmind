@@ -127,14 +127,13 @@
 
 /* ─── Noor N avatar (quote) ──────────────────────────────────────── */
 .noor-n-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
   object-position: center;
   flex-shrink: 0;
   display: block;
-  image-rendering: -webkit-optimize-contrast;
 }
 
 /* ─── CTA ────────────────────────────────────────────────────────── */

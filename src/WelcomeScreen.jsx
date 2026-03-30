@@ -3,7 +3,7 @@ import './WelcomeScreen.css'
 function NoorN() {
   return (
     <img
-      src="/noor-avatar.png.jpeg"
+      src="/noor-avatar.png"
       alt="Noor"
       className="noor-n-avatar"
     />
