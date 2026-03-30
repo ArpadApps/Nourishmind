@@ -128,7 +128,7 @@
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 12px;
   font-style: italic;
-  color: #8a7d6e;
+  color: #b8a898;
   line-height: 1.6;
   margin-bottom: 36px;
 }
@@ -163,14 +163,14 @@
 /* ─── 8. Subtext ─────────────────────────────────────────────────── */
 .welcome-subtext {
   font-size: 11px;
-  color: #4a3f34;
+  color: #6b5e4e;
   margin-bottom: 24px;
 }
 
 /* ─── 9. Pillars ─────────────────────────────────────────────────── */
 .welcome-pillars {
   font-size: 10px;
-  color: #4a3f34;
+  color: #6b5e4e;
   letter-spacing: 0.02em;
   margin-bottom: 40px;
 }
@@ -205,6 +205,18 @@
 }
 
 /* ─── Mobile ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .welcome-avatar-glow {
+    width: 160px;
+    height: 160px;
+  }
+
+  .welcome-avatar {
+    width: 140px;
+    height: 140px;
+  }
+}
+
 @media (max-width: 480px) {
   .welcome {
     padding: 40px 20px 32px;
