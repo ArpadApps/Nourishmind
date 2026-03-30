@@ -140,6 +140,18 @@ function saveDailyCount(count) {
   } catch {}
 }
 
+// ─── API routing ──────────────────────────────────────────────────────────
+
+const isLocal = window.location.hostname === 'localhost'
+const API_URL = isLocal ? 'https://api.anthropic.com/v1/messages' : '/api/chat'
+const API_HEADERS = {
+  'Content-Type': 'application/json',
+  ...(isLocal && {
+    'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+    'anthropic-version': '2023-06-01',
+  }),
+}
+
 // ─── Memory extraction ────────────────────────────────────────────────────
 
 async function extractMemoryUpdate(userMessage, noorResponse, existingMemory) {
@@ -156,11 +168,9 @@ Return a JSON object with any of these fields containing NEW information not alr
 For array fields include only new items not already present. For string fields only include if new or updated. If nothing new, return {}.`
 
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: API_HEADERS,
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 256,
@@ -183,11 +193,9 @@ For array fields include only new items not already present. For string fields o
 
 async function streamNoor(apiMessages, systemPrompt, onToken, onDone, onError) {
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: API_HEADERS,
       body: JSON.stringify({
         model: 'claude-opus-4-6',
         max_tokens: 1024,
