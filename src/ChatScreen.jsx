@@ -310,6 +310,9 @@ export default function ChatScreen() {
   const [memory, setMemory] = useState(() => loadMemory())
   const [dailyCount, setDailyCount] = useState(() => loadDailyCount())
 
+  const [privateMode, setPrivateMode] = useState(false)
+  const [showMemoryMenu, setShowMemoryMenu] = useState(false)
+
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
   const openingFired = useRef(false)
@@ -317,6 +320,9 @@ export default function ChatScreen() {
   useEffect(() => { memoryRef.current = memory }, [memory])
 
   const chatContainerRef = useRef(null)
+  const memoryMenuRef = useRef(null)
+  const headerCameraInputRef = useRef(null)
+  const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
   // Scroll to bottom on every update
   useEffect(() => {
@@ -464,22 +470,65 @@ export default function ChatScreen() {
 
       {/* ── Header ── */}
       <header className="chat-header">
-        <NoorAvatar size="header" />
-        <div className="chat-header-info">
-          <span className="chat-header-name">Noor</span>
-          <span className="chat-header-status">
-            <span className="status-dot" />
-            Your NourishMind companion
-          </span>
-        </div>
-        <div className="chat-header-brand">
-          {hasMemory && (
-            <span className="memory-badge" title="Noor remembers your previous conversations">
-              <span className="memory-dot" />
-              Remembers you
+        <div className="chat-header-left">
+          <NoorAvatar size="header" />
+          <div className="chat-header-info">
+            <span className="chat-header-name">Noor</span>
+            <span className="chat-header-status">
+              <span className={`status-dot${isStreaming ? ' status-dot--typing' : atLimit ? ' status-dot--limit' : ''}`} />
+              Your NourishMind companion
             </span>
-          )}
-          <span className="chat-brand-wordmark">NourishMind</span>
+          </div>
+        </div>
+        <div className="chat-header-centre">
+          <img src="/NM-icon.png" alt="NourishMind" className="chat-nm-logo" />
+        </div>
+        <div className="chat-header-right">
+          <div className="memory-menu-wrap" ref={memoryMenuRef}>
+            <button className="memory-badge memory-badge--btn" onClick={() => setShowMemoryMenu(v => !v)}>
+              <span className="memory-dot" style={{ background: privateMode ? '#c0392b' : '#c8a97e' }} />
+              {privateMode ? "Doesn't remember" : 'Remembers you'}
+            </button>
+            {showMemoryMenu && (
+              <div className="memory-dropdown">
+                <button
+                  className={`memory-option${!privateMode ? ' memory-option--active' : ''}`}
+                  onClick={() => { setPrivateMode(false); setShowMemoryMenu(false) }}
+                >
+                  {!privateMode && <span className="memory-option-dot" />}
+                  Remembers you
+                </button>
+                <button
+                  className={`memory-option${privateMode ? ' memory-option--active' : ''}`}
+                  onClick={() => { setPrivateMode(true); setShowMemoryMenu(false) }}
+                >
+                  {privateMode && <span className="memory-option-dot" />}
+                  Doesn't remember
+                </button>
+              </div>
+            )}
+          </div>
+          <input
+            ref={headerCameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={() => {}}
+          />
+          <button
+            className="chat-camera-btn"
+            onClick={handleHeaderCameraClick}
+            aria-label="Open camera or choose image"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M8 7L9.5 5H14.5L16 7H19C20.1 7 21 7.9 21 9V18C21 19.1 20.1 20 19 20H5C3.9 20 3 19.1 3 18V9C3 7.9 3.9 7 5 7H8Z"
+                stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+              />
+              <circle cx="12" cy="13.5" r="3.5" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </button>
         </div>
       </header>
 

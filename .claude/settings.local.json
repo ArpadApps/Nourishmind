@@ -3,7 +3,18 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(npx vite:*)",
-      "Bash(grep -E \"\\\\.\\(css|jsx\\)$\")"
+      "Bash(grep -E \"\\\\.\\(css|jsx\\)$\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(npm run:*)",
+      "Bash(vercel --prod)",
+      "Bash(npx vercel:*)",
+      "Bash(git -C c:/Users/Arpad/Desktop/nourishmind diff HEAD~1 src/ChatScreen.jsx)",
+      "Bash(git -C c:/Users/Arpad/Desktop/nourishmind checkout HEAD~1 -- src/ChatScreen.jsx)",
+      "Bash(git -C c:/Users/Arpad/Desktop/nourishmind checkout HEAD~2 -- src/ChatScreen.jsx)",
+      "Bash(git -C c:/Users/Arpad/Desktop/nourishmind checkout HEAD -- src/ChatScreen.jsx src/ChatScreen.css)"
     ]
   }
 }

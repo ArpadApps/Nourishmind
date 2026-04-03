@@ -21,8 +21,9 @@
 /* ─── 1. Logo bar ────────────────────────────────────────────────── */
 .welcome-brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 48px;
 }
 
@@ -46,13 +47,6 @@
   user-select: none;
 }
 
-.welcome-wordmark {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #e8ddd0;
-}
 
 /* ─── 2. Eyebrow ─────────────────────────────────────────────────── */
 .welcome-eyebrow {
@@ -210,4 +204,21 @@
     padding: 40px 20px 32px;
     align-items: flex-start;
   }
+}
+
+.welcome-wordmark {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: #c8a97e;
+}
+
+.welcome-nm-logo {
+  width: 104px;
+  height: 104px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
 }

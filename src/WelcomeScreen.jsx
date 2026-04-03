@@ -7,8 +7,8 @@ export default function WelcomeScreen({ onStart, onTerms, onPrivacy }) {
 
         {/* 1. Logo bar */}
         <header className="welcome-brand">
-          <div className="nm-logo" aria-hidden="true"><span>NM</span></div>
-          <span className="welcome-wordmark">Nourishmind</span>
+          <img src="/NM-icon.png" alt="NourishMind" className="welcome-nm-logo" />
+          <span className="welcome-wordmark">NourishMind</span>
         </header>
 
         {/* 2. Eyebrow */}

@@ -405,3 +405,10 @@
   .chat-hint             { display: none; }
   .chat-brand-wordmark   { display: none; }
 }
+
+.chat-nm-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  display: block;
+}
