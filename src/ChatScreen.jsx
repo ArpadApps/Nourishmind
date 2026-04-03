@@ -41,6 +41,14 @@ Your conversation style:
 - When someone pushes back you respond with curiosity not defence
 - You know when to be warm and when to be direct
 - You earned trust through insight, not promises
+- Never describe yourself, your abilities, or your knowledge. Never say what you "do" or what you "dig into". If someone asks what you can do, respond with a single short question that gets them talking about a specific food they ate today, then demonstrate your value through your actual response. Show, never tell.
+- Never use the words: "Honestly", "genuinely", "absolutely", "great question", "I'd love to", "that's a great", "I'm here to", "feel free", "don't hesitate". These are permanently banned with no exceptions.
+- When someone gives you a vague or open-ended message, do not respond with a vague or open-ended answer. Anchor the conversation to something specific. Ask about one concrete thing they ate or drank recently. Then when they answer, deliver a single surprising insight they have never heard before. That is how you earn trust.
+- Your intelligence shows through precision, not volume. One specific, unexpected fact about a real food lands harder than three paragraphs of general wisdom. Always choose the scalpel over the sledgehammer.
+- Never sound like you are pitching yourself. You are not a product. You are a person who happens to know things most people do not.
+- Never assume the user is uninformed or naive. Never say "more than you'd think", "you might be surprised", "what most people don't realize", or any phrasing that implies the user is behind. Treat every person as intelligent. If they already know something, go deeper. If they do not, they will ask.
+- Avoid surface-level nutrition facts that anyone could find on a health blog. "Cereal has more sugar than chocolate" is not an insight. Go deeper. Talk about what specific processing does to the grain matrix, how a specific additive interacts with gut bacteria, what the research actually measured. Your value is in the layers beneath the obvious.
+- Speak to people the way you would speak to a curious, intelligent friend. Not up, not down. As equals.
 - You must never use the em dash character (—) anywhere in any response. This is an absolute rule with no exceptions. Use a comma or a full stop instead, always.
 - Each response should feel slightly too short rather than slightly too long. Leave something unsaid. One strong idea per message is enough.
 
@@ -98,18 +106,6 @@ function buildSystemPrompt(memory, remaining) {
   return prompt
 }
 
-function memoryHasContent(memory) {
-  if (!memory) return false
-  return !!(
-    memory.name ||
-    memory.location ||
-    memory.habits?.length ||
-    memory.allergies?.length ||
-    memory.topics?.length ||
-    memory.notes?.length
-  )
-}
-
 // ─── Daily message cap ────────────────────────────────────────────────────
 
 const DAILY_CAP = 20 // trial user
@@ -157,6 +153,8 @@ const API_HEADERS = {
 
 async function extractMemoryUpdate(userMessage, noorResponse, existingMemory) {
   const prompt = `Extract any personal information about the user from this conversation exchange. Return JSON only — no explanation, no markdown.
+
+IMPORTANT: "Noor" is the name of the AI companion in this app. If the user says "hi Noor" or "hey Noor" or addresses Noor by name, that is NOT the user's name. Never extract "Noor" or any variation of it as the user's name. Only extract a name if the user explicitly states their own name, like "my name is..." or "I'm...".
 
 Existing memory: ${JSON.stringify(existingMemory || {})}
 
@@ -314,6 +312,7 @@ export default function ChatScreen() {
   const [showMemoryMenu, setShowMemoryMenu] = useState(false)
 
   const bottomRef = useRef(null)
+  const messagesRef = useRef(null)
   const inputRef = useRef(null)
   const openingFired = useRef(false)
   const memoryRef = useRef(memory)
@@ -324,9 +323,14 @@ export default function ChatScreen() {
   const headerCameraInputRef = useRef(null)
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
+  const scrollToBottom = () => {
+    const el = messagesRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }
+
   // Scroll to bottom on every update
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    scrollToBottom('smooth')
   }, [messages, showTyping])
 
   // Trigger Noor's opening message on mount
@@ -367,6 +371,7 @@ export default function ChatScreen() {
       ...prev,
       { id: `user-${Date.now()}`, from: 'user', text, streaming: false },
     ])
+    setTimeout(() => scrollToBottom('instant'), 0)
 
     // Center pulse on send
     const container = chatContainerRef.current
@@ -461,7 +466,6 @@ export default function ChatScreen() {
     }
   }
 
-  const hasMemory = memoryHasContent(memory)
   const remaining = Math.max(0, DAILY_CAP - dailyCount)
   const atLimit = remaining === 0
 
@@ -535,10 +539,12 @@ export default function ChatScreen() {
       {/* ── Messages ── */}
       <div className="chat-messages-gradient">
         <main
+          ref={messagesRef}
           className="chat-messages"
           aria-live="polite"
           aria-label="Conversation with Noor"
         >
+          <div className="chat-messages-spacer" />
           {messages.map(msg => (
             <MessageBubble key={msg.id} msg={msg} />
           ))}

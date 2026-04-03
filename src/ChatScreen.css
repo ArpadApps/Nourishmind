@@ -29,11 +29,17 @@
   flex-shrink: 0;
 }
 
+.chat-header-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
 .chat-header-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1;
 }
 
 .chat-header-name {
@@ -180,22 +186,31 @@
 /* ─── Messages area ──────────────────────────────────────────────── */
 .chat-messages-gradient {
   flex: 1;
+  min-height: 0;
   position: relative;
   z-index: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .chat-messages {
-  position: absolute;
-  inset: 0;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 32px 22px 16px;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 8px;
-  scroll-behavior: smooth;
   background: transparent;
   z-index: 1;
+  overflow-anchor: none;
+}
+
+.chat-messages-spacer {
+  flex: 1;
 }
 
 .chat-messages::-webkit-scrollbar { width: 4px; }
