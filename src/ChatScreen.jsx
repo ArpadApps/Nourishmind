@@ -136,6 +136,32 @@ function saveDailyCount(count) {
   } catch {}
 }
 
+// ─── Daily scan cap ───────────────────────────────────────────────────────
+
+const DAILY_SCAN_CAP = 2 // free tier
+
+function loadDailyScanCount() {
+  try {
+    const storedDate = localStorage.getItem('noor_scans_date')
+    const storedCount = parseInt(localStorage.getItem('noor_scans_count') || '0', 10)
+    if (storedDate !== todayString()) {
+      localStorage.setItem('noor_scans_date', todayString())
+      localStorage.setItem('noor_scans_count', '0')
+      return 0
+    }
+    return storedCount
+  } catch {
+    return 0
+  }
+}
+
+function saveDailyScanCount(count) {
+  try {
+    localStorage.setItem('noor_scans_date', todayString())
+    localStorage.setItem('noor_scans_count', String(count))
+  } catch {}
+}
+
 // ─── API routing ──────────────────────────────────────────────────────────
 
 const isLocal = window.location.hostname === 'localhost'
@@ -147,6 +173,70 @@ const API_HEADERS = {
     'anthropic-version': '2023-06-01',
     'anthropic-dangerous-direct-browser-access': 'true',
   }),
+}
+
+// ─── Product Shelf ────────────────────────────────────────────────────────
+
+const PRODUCT_SHELF_KEY = 'noor-product-shelf'
+
+function loadProductShelf() {
+  try {
+    const raw = localStorage.getItem(PRODUCT_SHELF_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveProductShelf(shelf) {
+  try {
+    localStorage.setItem(PRODUCT_SHELF_KEY, JSON.stringify(shelf))
+  } catch {}
+}
+
+// ─── Image compression ────────────────────────────────────────────────────
+
+function compressImage(file, maxSizeBytes = 4 * 1024 * 1024) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let quality = 0.85
+      let maxDim = 1600
+      const attempt = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        canvas.toBlob(
+          (blob) => {
+            if (blob.size > maxSizeBytes && quality > 0.3) {
+              quality -= 0.15
+              attempt()
+            } else if (blob.size > maxSizeBytes && maxDim > 800) {
+              quality = 0.85
+              maxDim -= 400
+              attempt()
+            } else {
+              const reader = new FileReader()
+              reader.onload = () => {
+                const base64 = reader.result.split(',')[1]
+                resolve({ base64, mimeType: 'image/jpeg' })
+              }
+              reader.readAsDataURL(blob)
+            }
+          },
+          'image/jpeg',
+          quality
+        )
+      }
+      attempt()
+    }
+    img.src = url
+  })
 }
 
 // ─── Memory extraction ────────────────────────────────────────────────────
@@ -185,6 +275,94 @@ For array fields include only new items not already present. For string fields o
     return Object.keys(updates).length ? updates : null
   } catch {
     return null
+  }
+}
+
+// ─── Label scan analysis ──────────────────────────────────────────────────
+
+async function analyseLabelImage(base64Image, mimeType, existingMemory, productShelf) {
+  const shelfSummary = productShelf.length > 0
+    ? productShelf.map(p => p.productName).join(', ')
+    : 'none yet'
+
+  const memorySummary = existingMemory && Object.keys(existingMemory).length
+    ? JSON.stringify(existingMemory)
+    : 'none yet'
+
+  const prompt = `You are Noor, analysing a product label photo.
+
+STEP 1 — VALIDATION
+Look at this image. Is it a readable product label, ingredients list, or nutrition panel?
+- If it is NOT a food or supplement product label at all, respond with exactly: INVALID: That is not a product label. Point the camera at the ingredients list or nutrition panel.
+- If it IS a label but too blurry, dark, or cut off to read, respond with exactly: INVALID: I cannot read that clearly. Try again with more light or a bit closer.
+- If it IS a readable product label, proceed to Step 2.
+
+STEP 2 — ANALYSIS
+You know this about the user: ${memorySummary}
+Products they have already kept: ${shelfSummary}
+
+Write 4 to 6 sentences, between 80 and 120 words. This range is a hard rule. No bullet points, no dashes, no em dashes, no exclamation marks. Flowing sentences only, like a knowledgeable friend texting.
+
+Your response must include:
+1. One specific number from the label (grams, percentage, milligrams) to anchor your insight
+2. Name the single weakest ingredient and explain what it specifically does in the body at a mechanical level (enzymes, hormones, gut bacteria, cellular processes). Never be vague.
+3. One sentence explaining why the manufacturer uses it (cost, shelf life, texture, consumer psychology)
+4. One concrete practical alternative. Be smart about this: if the product is canned or packaged, do not default to "buy fresh instead." The user chose this format for a reason, respect that. Suggest a better version within the same format first (a cleaner canned brand, a different preserved option). Only hint at fresh if it is genuinely easy and makes a real difference. Remember that some preserved foods are nutritionally superior to fresh (whole canned sardines with bones provide more calcium than fresh fillets, canned tomatoes are higher in lycopene than raw). Meet the user where they are.
+5. End on a single thought that makes the user think after they put down the phone
+
+Never use: "your body will thank you", "hidden cost", "think twice", "worth noting", "the real question is", or any generic health blog phrasing.
+
+Here is an example of the quality and tone to match (do not copy this, use it as a calibration reference only):
+"The squid itself brings quality protein and phosphorus, but the sodium here is 1.8g per 100g. That floods your system with salt that strains your kidneys and pulls water into your bloodstream, raising blood pressure over time. Manufacturers load preserved seafood with sodium because it acts as both preservative and flavour enhancer, masking the metallic taste of canned seafood. If you eat fish regularly, consider buying fresh squid from your local market and sauteing it with garlic and herbs instead. Your body knows the difference between real ocean flavour and a salty imitation."
+
+Begin your response with VALID: followed by the product name on the first line, then your analysis on the next line.`
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: API_HEADERS,
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 512,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mimeType,
+                data: base64Image,
+              },
+            },
+            { type: 'text', text: prompt },
+          ],
+        }],
+      }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      return { valid: false, message: `Something went wrong. (${err.error?.message || response.status})` }
+    }
+
+    const data = await response.json()
+    const text = data.content?.[0]?.text?.trim() || ''
+
+    if (text.startsWith('INVALID:')) {
+      return { valid: false, message: text.replace('INVALID:', '').trim() }
+    }
+
+    if (text.startsWith('VALID:')) {
+      const lines = text.replace('VALID:', '').trim().split('\n')
+      const productName = lines[0]?.trim() || 'Unknown product'
+      const analysis = lines.slice(1).join('\n').trim()
+      return { valid: true, productName, analysis }
+    }
+
+    return { valid: true, productName: 'Unknown product', analysis: text }
+  } catch (err) {
+    return { valid: false, message: `Something went wrong. (${err.message})` }
   }
 }
 
@@ -296,6 +474,15 @@ function MessageBubble({ msg }) {
   )
 }
 
+function ScanButtons({ onKeep, onLeave }) {
+  return (
+    <div className="scan-buttons">
+      <button className="scan-btn scan-btn--keep" onClick={onKeep}>Taking it</button>
+      <button className="scan-btn scan-btn--leave" onClick={onLeave}>Leaving it</button>
+    </div>
+  )
+}
+
 // ─── Main component ────────────────────────────────────────────────────────
 
 export default function ChatScreen() {
@@ -307,6 +494,10 @@ export default function ChatScreen() {
   const [ready, setReady] = useState(false)
   const [memory, setMemory] = useState(() => loadMemory())
   const [dailyCount, setDailyCount] = useState(() => loadDailyCount())
+  const [scanCount, setScanCount] = useState(() => loadDailyScanCount())
+  const [productShelf, setProductShelf] = useState(() => loadProductShelf())
+  const [isScanning, setIsScanning] = useState(false)
+  const [scanResult, setScanResult] = useState(null)
 
   const [privateMode, setPrivateMode] = useState(false)
   const [showMemoryMenu, setShowMemoryMenu] = useState(false)
@@ -466,6 +657,38 @@ export default function ChatScreen() {
     }
   }
 
+  const handleKeepProduct = useCallback(() => {
+    if (!scanResult) return
+    const newEntry = {
+      id: `product-${Date.now()}`,
+      productName: scanResult.productName,
+      dateScanned: new Date().toISOString(),
+      verdict: scanResult.analysis,
+      status: 'keeper',
+    }
+    const updatedShelf = [...productShelf, newEntry]
+    saveProductShelf(updatedShelf)
+    setProductShelf(updatedShelf)
+    setScanResult(null)
+    setMessages(prev => [...prev, {
+      id: `noor-kept-${Date.now()}`,
+      from: 'noor',
+      text: `Noted. ${scanResult.productName} is on your shelf.`,
+      streaming: false,
+    }])
+  }, [scanResult, productShelf])
+
+  const handleLeaveProduct = useCallback(() => {
+    if (!scanResult) return
+    setScanResult(null)
+    setMessages(prev => [...prev, {
+      id: `noor-left-${Date.now()}`,
+      from: 'noor',
+      text: 'Good call.',
+      streaming: false,
+    }])
+  }, [scanResult])
+
   const remaining = Math.max(0, DAILY_CAP - dailyCount)
   const atLimit = remaining === 0
 
@@ -516,13 +739,73 @@ export default function ChatScreen() {
             ref={headerCameraInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             style={{ display: 'none' }}
-            onChange={() => {}}
+            onChange={async (e) => {
+              console.log('Camera handler fired', e.target.files)
+              const file = e.target.files?.[0]
+              if (!file) return
+              e.target.value = ''
+
+              const currentScanCount = loadDailyScanCount()
+              if (currentScanCount >= DAILY_SCAN_CAP) {
+                setMessages(prev => [...prev, {
+                  id: `noor-scan-${Date.now()}`,
+                  from: 'noor',
+                  text: "You have used your 2 free scans for today. They reset tomorrow morning. If you want more, Pro gives you 15 a day.",
+                  streaming: false,
+                }])
+                return
+              }
+
+              setIsScanning(true)
+              setMessages(prev => [...prev, {
+                id: `scan-indicator-${Date.now()}`,
+                from: 'noor',
+                text: '\u{1F4F7} Label scanned',
+                streaming: false,
+              }])
+
+              const { base64, mimeType } = await compressImage(file)
+              const currentMemory = privateMode ? null : memoryRef.current
+              const shelf = loadProductShelf()
+
+              const result = await analyseLabelImage(base64, mimeType, currentMemory, shelf)
+
+              if (!result.valid) {
+                setIsScanning(false)
+                setMessages(prev => {
+                  const filtered = prev.filter(m => !m.id.startsWith('scan-indicator-'))
+                  return [...filtered, {
+                    id: `noor-scan-${Date.now()}`,
+                    from: 'noor',
+                    text: result.message,
+                    streaming: false,
+                  }]
+                })
+                return
+              }
+
+              const newScanCount = currentScanCount + 1
+              saveDailyScanCount(newScanCount)
+              setScanCount(newScanCount)
+
+              setIsScanning(false)
+              setScanResult(result)
+              setMessages(prev => {
+                const filtered = prev.filter(m => !m.id.startsWith('scan-indicator-'))
+                return [...filtered, {
+                  id: `noor-scan-${Date.now()}`,
+                  from: 'noor',
+                  text: result.analysis,
+                  streaming: false,
+                }]
+              })
+            }}
           />
           <button
             className="chat-camera-btn"
             onClick={handleHeaderCameraClick}
+            disabled={isScanning}
             aria-label="Open camera or choose image"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -548,6 +831,9 @@ export default function ChatScreen() {
           {messages.map(msg => (
             <MessageBubble key={msg.id} msg={msg} />
           ))}
+          {scanResult && !isScanning && (
+            <ScanButtons onKeep={handleKeepProduct} onLeave={handleLeaveProduct} />
+          )}
           {showTyping && <TypingIndicator />}
           <div ref={bottomRef} />
         </main>

@@ -506,3 +506,38 @@
   color: #c8a97e;
   border-color: #c8a97e;
 }
+
+/* ─── Label scan buttons ─────────────────────────────────────────────────── */
+
+.scan-buttons {
+  display: flex;
+  gap: 12px;
+  padding: 8px 56px;
+  justify-content: center;
+}
+
+.scan-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-family: Georgia, serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  border: 1px solid;
+}
+
+.scan-btn:hover {
+  opacity: 0.85;
+}
+
+.scan-btn--keep {
+  background: #c8a97e;
+  color: #0e0d0c;
+  border-color: #c8a97e;
+}
+
+.scan-btn--leave {
+  background: transparent;
+  color: #e8ddd0;
+  border-color: #3d3228;
+}
