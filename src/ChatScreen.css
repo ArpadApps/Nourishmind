@@ -517,7 +517,8 @@
 }
 
 .scan-btn {
-  padding: 10px 24px;
+  padding: 12px 32px;
+  min-height: 44px;
   border-radius: 8px;
   font-family: Georgia, serif;
   font-size: 0.9rem;

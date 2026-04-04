@@ -312,6 +312,8 @@ Your response must include:
 
 Never use: "your body will thank you", "hidden cost", "think twice", "worth noting", "the real question is", or any generic health blog phrasing.
 
+Never recommend specific brand names. You are not affiliated with any brand and the user could be shopping anywhere in the world. Instead of suggesting a brand, teach the user what to look for on a label. For example: "look for one where sugar is not in the first three ingredients" or "find one where the fibre per serving is higher than the sugar" or "check for the words cold-pressed and single origin." Give them the knowledge to judge any product themselves. That is worth more than a brand name.
+
 Here is an example of the quality and tone to match (do not copy this, use it as a calibration reference only):
 "The squid itself brings quality protein and phosphorus, but the sodium here is 1.8g per 100g. That floods your system with salt that strains your kidneys and pulls water into your bloodstream, raising blood pressure over time. Manufacturers load preserved seafood with sodium because it acts as both preservative and flavour enhancer, masking the metallic taste of canned seafood. If you eat fish regularly, consider buying fresh squid from your local market and sauteing it with garlic and herbs instead. Your body knows the difference between real ocean flavour and a salty imitation."
 
@@ -529,7 +531,17 @@ export default function ChatScreen() {
     if (openingFired.current) return
     openingFired.current = true
 
-    const OPENING = "I'm Noor. The gap between food marketing and nutritional science is massive, and it's confusing by design. You deserve clarity. What have you been eating a lot of lately?"
+    const OPENINGS = [
+      "I'm Noor. The gap between food marketing and nutritional science is massive, and it's confusing by design. You deserve clarity. What have you been eating a lot of lately?",
+      "I'm Noor. Most of what people believe about food came from marketing, not science. That is worth fixing. What did you eat today?",
+      "I'm Noor. The food industry spends billions making sure you never read the fine print. I read it for a living. What is something you eat most days without thinking about it?",
+      "I'm Noor. There is a reason the healthiest populations on earth eat nothing like what supermarkets push on us. What did you have for breakfast this morning?",
+      "I'm Noor. Somewhere between the health claims on the front of the pack and the ingredients on the back, the truth gets lost. What is one thing you have been eating a lot of recently?",
+      "I'm Noor. The same food can heal or harm depending on how it was made, where it came from, and when you eat it. Most labels will never tell you that. What did you eat last?",
+      "I'm Noor. People spend more time researching a phone case than the ingredients in their food. No judgement, the system is designed that way. What is something you bought at the shop this week?",
+      "I'm Noor. Half the things labelled healthy in a supermarket would not pass a basic nutrition review. That is not an accident. What have you been reaching for lately?",
+    ]
+    const OPENING = OPENINGS[Math.floor(Math.random() * OPENINGS.length)]
 
     setTimeout(() => {
       setMessages([{ id: 'noor-open', from: 'noor', text: OPENING, streaming: false }])
@@ -673,18 +685,20 @@ export default function ChatScreen() {
     setMessages(prev => [...prev, {
       id: `noor-kept-${Date.now()}`,
       from: 'noor',
-      text: `Noted. ${scanResult.productName} is on your shelf.`,
+      text: `${scanResult.productName} is on your shelf.`,
       streaming: false,
     }])
   }, [scanResult, productShelf])
 
   const handleLeaveProduct = useCallback(() => {
     if (!scanResult) return
+    const leaveResponses = ['Good call.', 'Noted.', 'Smart.']
+    const text = leaveResponses[Math.floor(Math.random() * leaveResponses.length)]
     setScanResult(null)
     setMessages(prev => [...prev, {
       id: `noor-left-${Date.now()}`,
       from: 'noor',
-      text: 'Good call.',
+      text,
       streaming: false,
     }])
   }, [scanResult])
@@ -741,7 +755,6 @@ export default function ChatScreen() {
             accept="image/*"
             style={{ display: 'none' }}
             onChange={async (e) => {
-              console.log('Camera handler fired', e.target.files)
               const file = e.target.files?.[0]
               if (!file) return
               e.target.value = ''
@@ -758,6 +771,7 @@ export default function ChatScreen() {
               }
 
               setIsScanning(true)
+              setShowTyping(true)
               setMessages(prev => [...prev, {
                 id: `scan-indicator-${Date.now()}`,
                 from: 'noor',
@@ -773,8 +787,9 @@ export default function ChatScreen() {
 
               if (!result.valid) {
                 setIsScanning(false)
+                setShowTyping(false)
                 setMessages(prev => {
-                  const filtered = prev.filter(m => !m.id.startsWith('scan-indicator-'))
+                  const filtered = prev
                   return [...filtered, {
                     id: `noor-scan-${Date.now()}`,
                     from: 'noor',
@@ -790,9 +805,10 @@ export default function ChatScreen() {
               setScanCount(newScanCount)
 
               setIsScanning(false)
+              setShowTyping(false)
               setScanResult(result)
               setMessages(prev => {
-                const filtered = prev.filter(m => !m.id.startsWith('scan-indicator-'))
+                const filtered = prev
                 return [...filtered, {
                   id: `noor-scan-${Date.now()}`,
                   from: 'noor',
