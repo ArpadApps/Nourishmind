@@ -24,7 +24,7 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .chat-header-right {
@@ -1134,5 +1134,12 @@
 @media (max-width: 600px) {
   .chat-header-status {
     display: none;
+  }
+  .memory-badge-text {
+    display: none;
+  }
+  .memory-badge {
+    flex-direction: row;
+    gap: 0;
   }
 }

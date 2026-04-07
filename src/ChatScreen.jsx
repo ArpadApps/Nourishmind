@@ -1130,7 +1130,7 @@ export default function ChatScreen() {
         <div className="chat-header-right">
           <div className="memory-menu-wrap" ref={memoryMenuRef}>
             <button className="memory-badge memory-badge--btn" onClick={() => setShowMemoryMenu(v => !v)}>
-              {privateMode ? "Doesn't remember" : 'Remembers you'}
+              <span className="memory-badge-text">{privateMode ? "Doesn't remember" : 'Remembers you'}</span>
               <span className="memory-dot" style={{ background: privateMode ? '#c0392b' : '#c8a97e' }} />
             </button>
             {showMemoryMenu && (
