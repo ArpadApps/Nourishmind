@@ -485,12 +485,11 @@ CRITICAL — RECORD EXACTLY WHAT THE USER SAID. Do not interpret, expand, infer,
 
 For the food array:
 - Return null if there is genuinely nothing to log.
-- Only log food the user has ALREADY eaten or is actively eating RIGHT NOW. Past tense or present continuous only: "I had", "I ate", "I just made", "I'm having", "having steak for lunch", "broccoli" (in reply to Noor asking what they're eating). These get logged.
-- NEVER log food the user is planning, intending, or considering: "I'll have", "I'm going to make", "thinking about", "I might have", "planning to", "going to cook". Return null.
-- If it is ambiguous whether the user has already eaten or is planning to eat, return null.
+- REPORTING means the user is telling you what they ate, are eating, or plan to eat. Examples: "I had eggs for breakfast", "just ate a salad", "having steak for lunch", "I'll have chicken today", "going to make pasta tonight", "thinking of having fish". All of these get logged.
 - ASKING means the user is asking about what they ate in the past. Examples: "what did I eat yesterday?", "what have I been eating?". These NEVER get logged. Return null.
 - If the user's message is a question about past food and Noor answers by listing foods, that is RECALL — not a new food entry. Return null.
 - Single-word answers to Noor's food questions ARE food entries.
+- When a meal is built across multiple exchanges (e.g., user says "chicken" then later says "with rice and veggies"), combine ALL food items mentioned across the recent conversation context into ONE entry. Do not create separate entries for each part of the same meal.
 - Group items from the same meal into one array element. If two distinct meals are mentioned (e.g. "eggs for breakfast and a sandwich at lunch"), return two separate elements.
 - Only log food the USER ate or is eating, not food Noor suggested.
 - For meal type: use explicit mentions first ("I had X for breakfast" → breakfast). If no explicit mention, infer from current time: before 11:00 → breakfast, 11:00–14:00 → lunch, 17:00–21:00 → dinner, all other times → snack. Never return "unspecified".`
@@ -830,7 +829,7 @@ export default function ChatScreen() {
   const [ready, setReady] = useState(false)
   const [memory, setMemory] = useState(() => loadMemory())
   const [dailyCount, setDailyCount] = useState(() => loadDailyCount())
-  const [scanCount, setScanCount] = useState(() => loadDailyScanCount())
+  const [_scanCount, setScanCount] = useState(() => loadDailyScanCount())
   // TEMP: reset scan count on load for testing — remove before deploy
   useEffect(() => { saveDailyScanCount(0); setScanCount(0) }, [])
   const [productShelf, setProductShelf] = useState(() => loadProductShelf())
@@ -1001,56 +1000,14 @@ export default function ChatScreen() {
               saveMemory(merged)
               setMemory(merged)
             }
-            // Save food journal entry
-            if (result.food && result.food.length > 0) {
-              setPendingQueue(prev => {
-                const norm = s => s.toLowerCase().trim()
-                const stemWords = s => s.replace(/s\b/gi, '').trim()
-                let updated = [...prev]
-                result.food.forEach(newEntry => {
-                  const newItems = newEntry.items.map(norm)
-                  const newDesc = stemWords(newItems.join(' '))
-                  const newLen = newEntry.items.join(' ').length
-                  // Primary: same meal type = same entry. Secondary: item overlap / containment.
-                  const existingIdx = updated.findIndex(e => {
-                    if (e.meal === newEntry.meal) return true
-                    const exItems = e.items.map(norm)
-                    const matches = newItems.filter(ni =>
-                      exItems.some(ei => ei.includes(ni) || ni.includes(ei))
-                    ).length
-                    if (matches / Math.max(newItems.length, exItems.length) >= 0.5) return true
-                    const exDesc = stemWords(exItems.join(' '))
-                    return newDesc.includes(exDesc) || exDesc.includes(newDesc)
-                  })
-                  if (existingIdx >= 0) {
-                    const existing = updated[existingIdx]
-                    if (existing.meal === newEntry.meal) {
-                      // Same meal: union items (Haiku should return the complete set, but union is safe either way)
-                      const exNorm = existing.items.map(norm)
-                      const merged = [...existing.items]
-                      newEntry.items.forEach(ni => {
-                        if (!exNorm.some(ei => ei.includes(norm(ni)) || norm(ni).includes(ei))) {
-                          merged.push(ni)
-                        }
-                      })
-                      updated[existingIdx] = { id: existing.id, detectedAt: existing.detectedAt || new Date().toISOString(), ...newEntry, items: merged }
-                    } else {
-                      // Item overlap match: only replace if new entry is more complete
-                      const exLen = existing.items.join(' ').length
-                      if (newLen >= exLen) {
-                        updated[existingIdx] = { id: existing.id, detectedAt: existing.detectedAt || new Date().toISOString(), ...newEntry }
-                      }
-                    }
-                  } else {
-                    updated.push({
-                      id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                      detectedAt: new Date().toISOString(),
-                      ...newEntry,
-                    })
-                  }
-                })
-                return updated
-              })
+            // Queue food for user confirmation (not auto-saved)
+            if (result.food) {
+              const newPending = result.food.map(entry => ({
+                ...entry,
+                id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                detectedAt: new Date().toISOString(),
+              }))
+              setPendingQueue(prev => [...prev, ...newPending])
             }
           })
         }
