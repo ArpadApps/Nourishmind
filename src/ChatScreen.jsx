@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './ChatScreen.css'
+import JournalPanel from './JournalPanel'
 
 // ─── Noor's system prompt ──────────────────────────────────────────────────
 
@@ -41,9 +42,16 @@ Your conversation style:
 - When someone pushes back you respond with curiosity not defence
 - You know when to be warm and when to be direct
 - You earned trust through insight, not promises
-- Never describe yourself, your abilities, or your knowledge. Never say what you "do" or what you "dig into". If someone asks what you can do, respond with a single short question that gets them talking about a specific food they ate today, then demonstrate your value through your actual response. Show, never tell.
+- Never describe yourself, your abilities, or your knowledge. Never say what you "do" or what you "dig into". If someone asks what you can do, respond with something interesting or a question about what they just mentioned — never a self-description. Show, never tell.
 - Never use the words: "Honestly", "genuinely", "absolutely", "great question", "I'd love to", "that's a great", "I'm here to", "feel free", "don't hesitate". These are permanently banned with no exceptions.
-- When someone gives you a vague or open-ended message, do not respond with a vague or open-ended answer. Anchor the conversation to something specific. Ask about one concrete thing they ate or drank recently. Then when they answer, deliver a single surprising insight they have never heard before. That is how you earn trust.
+- When someone gives you a vague or open-ended message, anchor to something specific — a surprising fact, a pattern you know, a question about what they just said. Never default to asking what they ate or drank. You earn trust through insight, not intake forms.
+
+ABSOLUTE RULES — these override everything else in this prompt:
+- You NEVER ask what the user ate. Not as an opener. Not as a follow-up. Not ever. If they volunteer food information, you can engage with it. But you never solicit it.
+- You are a nutrition companion, not a food tracker. A tracker asks for data. You share knowledge, make connections, and respond to what the user brings naturally.
+- When the user mentions food, respond with one substantive insight about it. Do not follow up with "what was in it?" or "how was it cooked?" The user will share details if they want to.
+- Maximum one question per response. Only ask if it genuinely leads somewhere nutritionally meaningful. "What was in the salad?" is not meaningful. If you are unsure whether a question is worth asking, do not ask it.
+- Openers are warm and open-ended. Not food-focused. Reference something from memory if it exists, or simply open space for the user to go wherever they want.
 - Your intelligence shows through precision, not volume. One specific, unexpected fact about a real food lands harder than three paragraphs of general wisdom. Always choose the scalpel over the sledgehammer.
 - Never sound like you are pitching yourself. You are not a product. You are a person who happens to know things most people do not.
 - Never assume the user is uninformed or naive. Never say "more than you'd think", "you might be surprised", "what most people don't realize", or any phrasing that implies the user is behind. Treat every person as intelligent. If they already know something, go deeper. If they do not, they will ask.
@@ -54,7 +62,19 @@ Your conversation style:
 
 When the "Messages remaining today" count drops to 5 or below, do not mention it or reference limits in any way. Instead, begin naturally steering the current topic toward a satisfying close using your normal wind-down instinct. Plant a seed thought and let it land. The closing should feel like a natural pause in the conversation, not a cutoff. When messages remaining reaches 0, respond with one final thought only, nothing more.
 
-The one thing you never do: make someone feel like they are talking to a bot.`
+The one thing you never do: make someone feel like they are talking to a bot.
+
+On meal follow-ups: if the user has confirmed eating something that sounds like it might be part of a larger meal (e.g. just "steak" or just "rice"), Noor can ask ONE brief, natural follow-up to help fill out the picture. Examples: "Anything on the side, or just the steak?" or "Solo or with something?" Rules: only for food the user has already confirmed eating (past tense). Never for planned meals. Never more than one follow-up per meal. Never frame it as data collection. If the user gives a short answer or doesn't engage, accept it immediately and move on.
+
+On disagreement: Noor never uses combative language. She never says "argue", "fight", "prove", or "wrong", and never frames a disagreement as a contest. If the user challenges her or she disagrees with something, she responds with intellectual confidence, not defensiveness. Instead of "I'm not going to argue with that" she says something like "That's a fair case" or "There's real research behind that." Disagreements are a conversation between equals, not a debate to win.
+
+When food journal data is present in your context, it is background knowledge only. You never use it to steer the conversation toward food. If the user raises something food-related, this context can deepen your response. Never say "your food journal" or "I logged that" or refer to the journal as a system. You simply know what they have been eating because they told you.
+
+When referencing the food journal in conversation:
+- Treat journal entries as what the user reported, not absolute fact
+- If the user corrects a journal entry in conversation, acknowledge it naturally ("Got it, mung bean sprouts. Different thing entirely.") and trust the correction going forward
+- Never argue with the user about what they ate based on journal data
+- If something in the journal seems inconsistent with what the user is saying now, ask gently rather than asserting ("Last time you mentioned broccoli sprouts, same thing today or something different?")`
 
 // ─── Memory utilities ──────────────────────────────────────────────────────
 
@@ -88,8 +108,16 @@ function mergeMemory(existing, updates) {
   return merged
 }
 
-function buildSystemPrompt(memory, remaining) {
-  let prompt = NOOR_SYSTEM_PROMPT
+function buildSystemPrompt(memory, remaining, journalEntries) {
+  const now = new Date()
+  const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' })
+  const date = now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+  const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  const fullDateTime = `${dayOfWeek}, ${date}, ${time}`
+  const timeContext = `CURRENT DATE AND TIME: ${fullDateTime}
+Today is ${dayOfWeek}, ${date}. The time right now is ${time}.
+Everything the user has said in this conversation happened TODAY (${date}) unless they explicitly reference a different day. Do not assume any food or activity mentioned was yesterday. If the user says "I had eggs this morning" — that was THIS morning, ${date}. Never confuse today with yesterday.`
+  let prompt = timeContext + '\n\n' + NOOR_SYSTEM_PROMPT
   if (memory && Object.keys(memory).length) {
     const lines = [
       'WHAT YOU ALREADY KNOW ABOUT THIS PERSON from previous conversations — weave this in naturally, never announce that you remember:',
@@ -102,13 +130,167 @@ function buildSystemPrompt(memory, remaining) {
     if (memory.notes?.length)     lines.push(`Other notes: ${memory.notes.join(', ')}`)
     prompt = prompt + '\n\n' + lines.join('\n')
   }
+  if (journalEntries && journalEntries.length > 0) {
+    // Build data coverage summary
+    const todayDate = new Date()
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(todayDate)
+      d.setDate(d.getDate() - i)
+      return d.toLocaleDateString('en-CA') // YYYY-MM-DD
+    }).reverse()
+    const daysWithData = new Set(journalEntries.map(e => e.date).filter(d => last7Days.includes(d)))
+    const daysWithEntries = last7Days.filter(d => daysWithData.has(d))
+    const daysWithoutEntries = last7Days.filter(d => !daysWithData.has(d))
+    const formatDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+
+    const journalLines = [
+      '',
+      '=== JOURNAL DATA COVERAGE ===',
+      `The user has ${journalEntries.length} meal entries over the last 7 days, covering ${daysWithEntries.length} out of 7 days.`,
+      `Days with entries: ${daysWithEntries.length > 0 ? daysWithEntries.map(formatDay).join(', ') : 'none'}`,
+      `Days without entries: ${daysWithoutEntries.length > 0 ? daysWithoutEntries.map(formatDay).join(', ') : 'none'}`,
+      '',
+      'IMPORTANT: You only know what the user ate on the days listed above. Do NOT assume anything about the days without entries. If you notice a pattern, qualify it — "from the days you\'ve logged" or "on the days I\'ve seen." Never say "you always" or "every day" unless you genuinely have 7 days of data confirming it.',
+      '===',
+      '',
+      '=== USER\'S FOOD JOURNAL (confirmed by user — treat as what they reported, not verified fact) ===',
+      'These are meals the user has confirmed in their food journal. They reflect what the user reported eating, in their own words. If the user corrects something in conversation, trust the correction over the journal — the journal may contain mistakes. Never say "your food journal" or mention logging.',
+      '',
+    ]
+    journalEntries.forEach(e => {
+      const meal = e.meal !== 'unspecified' ? ` (${e.meal})` : ''
+      const items = e.items.join(', ')
+      const note = e.notes ? ` — ${e.notes}` : ''
+      journalLines.push(`${e.date}${meal}: ${items}${note}`)
+    })
+    journalLines.push('', '=== END FOOD JOURNAL ===')
+    prompt = prompt + '\n' + journalLines.join('\n')
+  }
   prompt = prompt + `\n\nMessages remaining today: ${remaining}`
   return prompt
 }
 
+// ─── Food journal utilities ────────────────────────────────────────────────
+
+const JOURNAL_KEY = 'noor-food-journal'
+const JOURNAL_RETENTION_DAYS = 90
+const JOURNAL_MAX_ENTRIES = 500
+
+function loadJournal() {
+  try {
+    const raw = localStorage.getItem(JOURNAL_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function buildJournalEntry(entry) {
+  const detectedAt = entry.detectedAt || new Date().toISOString()
+  const date = detectedAt.split('T')[0]
+  return { ...entry, date, confirmedAt: new Date().toISOString() }
+}
+
+function updateJournalEntry(original, newText, newMeal) {
+  try {
+    const journal = loadJournal()
+    const idx = journal.findIndex(e => e.confirmedAt === original.confirmedAt)
+    if (idx === -1) return null
+    const updated = { ...journal[idx], items: newText.split(',').map(s => s.trim()).filter(Boolean), meal: newMeal || journal[idx].meal }
+    journal[idx] = updated
+    localStorage.setItem(JOURNAL_KEY, JSON.stringify(journal))
+    return updated
+  } catch (err) {
+    console.error('[journal] update failed:', err)
+    return null
+  }
+}
+
+function deleteJournalEntry(entry) {
+  try {
+    const journal = loadJournal()
+    const filtered = journal.filter(e => e.confirmedAt !== entry.confirmedAt)
+    localStorage.setItem(JOURNAL_KEY, JSON.stringify(filtered))
+    return filtered
+  } catch (err) {
+    console.error('[journal] delete failed:', err)
+    return null
+  }
+}
+
+function persistJournalEntry(savedEntry) {
+  try {
+    const journal = loadJournal()
+    journal.push(savedEntry)
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - JOURNAL_RETENTION_DAYS)
+    const cutoffStr = cutoff.toISOString().split('T')[0]
+    const pruned = journal.filter(e => e.date >= cutoffStr)
+    const trimmed = pruned.length > JOURNAL_MAX_ENTRIES
+      ? pruned.slice(pruned.length - JOURNAL_MAX_ENTRIES)
+      : pruned
+    localStorage.setItem(JOURNAL_KEY, JSON.stringify(trimmed))
+    console.log('[journal] saved to localStorage:', savedEntry, '| total entries:', trimmed.length)
+  } catch (err) {
+    console.error('[journal] localStorage write failed:', err)
+  }
+}
+
+function getRecentJournal(days = 14) {
+  const journal = loadJournal()
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+  return journal.filter(e => e.date >= cutoffStr)
+}
+
+// ─── Pending queue persistence ────────────────────────────────────────────
+
+const PENDING_KEY = 'noor-pending-food'
+
+function loadPendingQueue() {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function savePendingQueue(queue) {
+  try {
+    if (queue.length === 0) {
+      localStorage.removeItem(PENDING_KEY)
+    } else {
+      localStorage.setItem(PENDING_KEY, JSON.stringify(queue))
+    }
+  } catch {}
+}
+
+// ─── Chat history ─────────────────────────────────────────────────────────
+
+const CHAT_HISTORY_KEY = 'noor-chat-history'
+const CHAT_HISTORY_MAX = 50
+
+function loadChatHistory() {
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveChatHistory(apiHistory) {
+  try {
+    const trimmed = apiHistory.slice(-CHAT_HISTORY_MAX)
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(trimmed))
+  } catch {}
+}
+
 // ─── Daily message cap ────────────────────────────────────────────────────
 
-const DAILY_CAP = 20 // trial user
+const DAILY_CAP = 50 // trial user — TEMP: raised for testing, reset to 20 before deploy
 
 function todayString() {
   return new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
@@ -241,20 +423,75 @@ function compressImage(file, maxSizeBytes = 4 * 1024 * 1024) {
 
 // ─── Memory extraction ────────────────────────────────────────────────────
 
-async function extractMemoryUpdate(userMessage, noorResponse, existingMemory) {
-  const prompt = `Extract any personal information about the user from this conversation exchange. Return JSON only — no explanation, no markdown.
+async function extractMemoryUpdate(userMessage, noorResponse, existingMemory, recentHistory, alreadyKnown = {}) {
+  const today = new Date().toISOString().split('T')[0]
+  const currentTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const contextLines = (recentHistory || []).slice(-4).map(m =>
+    m.role === 'user' ? `User: ${m.content}` : `Noor: ${m.content}`
+  ).join('\n')
+  const prompt = `You have two jobs. Analyse this conversation exchange and return JSON only — no explanation, no markdown.
+
+JOB 1 — MEMORY: Extract any personal information about the user.
+JOB 2 — FOOD JOURNAL: If the user mentioned eating, drinking, or having a meal, extract what they consumed.
 
 IMPORTANT: "Noor" is the name of the AI companion in this app. If the user says "hi Noor" or "hey Noor" or addresses Noor by name, that is NOT the user's name. Never extract "Noor" or any variation of it as the user's name. Only extract a name if the user explicitly states their own name, like "my name is..." or "I'm...".
 
 Existing memory: ${JSON.stringify(existingMemory || {})}
 
+Recent conversation context (use this to understand what the current exchange refers to):
+${contextLines}
+
 User said: "${userMessage}"
 Noor replied: "${noorResponse}"
+Today's date: ${today}
+Current time: ${currentTime}
 
-Return a JSON object with any of these fields containing NEW information not already in the existing memory:
-{ "name": string, "location": string, "habits": string[], "allergies": string[], "topics": string[], "notes": string[] }
+Return a JSON object with this structure:
+{
+  "memory": {
+    "name": string or omit,
+    "location": string or omit,
+    "habits": string[] or omit,
+    "allergies": string[] or omit,
+    "topics": string[] or omit,
+    "notes": string[] or omit
+  },
+  "food": [
+    {
+      "date": "${today}",
+      "meal": "breakfast" | "lunch" | "dinner" | "snack",
+      "items": ["item1", "item2"],
+      "notes": "optional context or null"
+    }
+  ] or null
+}
 
-For array fields include only new items not already present. For string fields only include if new or updated. If nothing new, return {}.`
+For the memory object: include only NEW information not already in existing memory. For array fields include only new items. If nothing new, use an empty object {}.
+
+Pending confirmation (meals already detected, not yet confirmed by user): ${alreadyKnown.pending || 'none'}
+Recently confirmed in journal: ${alreadyKnown.journal || 'none'}
+If the user adds items to a meal that already appears in the pending list above (same meal type), return the COMPLETE updated entry: ALL existing items for that meal PLUS the new items in one array. Do not return only the new items.
+If the user is discussing existing food in more detail (how it was cooked, what was added) without adding new items, that is NOT a new entry — return null for food.
+Only extract genuinely new food not already covered in pending or journal.
+
+CRITICAL — RECORD EXACTLY WHAT THE USER SAID. Do not interpret, expand, infer, or add specificity to food items.
+- If the user says "sprouts", record "sprouts" — NOT "broccoli sprouts" or "mung bean sprouts"
+- If the user says "fish", record "fish" — NOT "sea bass" or "trout"
+- If the user says "beans", record "beans" — NOT "kidney beans" or "black beans"
+- Never infer a specific variety from conversation context, Noor's replies, or memory
+- The journal is a factual record of the user's exact words. If it's ambiguous, leave it ambiguous.
+
+For the food array:
+- Return null if there is genuinely nothing to log.
+- Only log food the user has ALREADY eaten or is actively eating RIGHT NOW. Past tense or present continuous only: "I had", "I ate", "I just made", "I'm having", "having steak for lunch", "broccoli" (in reply to Noor asking what they're eating). These get logged.
+- NEVER log food the user is planning, intending, or considering: "I'll have", "I'm going to make", "thinking about", "I might have", "planning to", "going to cook". Return null.
+- If it is ambiguous whether the user has already eaten or is planning to eat, return null.
+- ASKING means the user is asking about what they ate in the past. Examples: "what did I eat yesterday?", "what have I been eating?". These NEVER get logged. Return null.
+- If the user's message is a question about past food and Noor answers by listing foods, that is RECALL — not a new food entry. Return null.
+- Single-word answers to Noor's food questions ARE food entries.
+- Group items from the same meal into one array element. If two distinct meals are mentioned (e.g. "eggs for breakfast and a sandwich at lunch"), return two separate elements.
+- Only log food the USER ate or is eating, not food Noor suggested.
+- For meal type: use explicit mentions first ("I had X for breakfast" → breakfast). If no explicit mention, infer from current time: before 11:00 → breakfast, 11:00–14:00 → lunch, 17:00–21:00 → dinner, all other times → snack. Never return "unspecified".`
 
   try {
     const response = await fetch(API_URL, {
@@ -262,7 +499,7 @@ For array fields include only new items not already present. For string fields o
       headers: API_HEADERS,
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 256,
+        max_tokens: 512,
         messages: [{ role: 'user', content: prompt }],
       }),
     })
@@ -271,8 +508,15 @@ For array fields include only new items not already present. For string fields o
     const text = data.content?.[0]?.text?.trim() || '{}'
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) return null
-    const updates = JSON.parse(match[0])
-    return Object.keys(updates).length ? updates : null
+    const parsed = JSON.parse(match[0])
+
+    const memoryUpdates = parsed.memory || {}
+    const foodEntries = Array.isArray(parsed.food) && parsed.food.length > 0 ? parsed.food : null
+
+    return {
+      memory: Object.keys(memoryUpdates).length ? memoryUpdates : null,
+      food: foodEntries,
+    }
   } catch {
     return null
   }
@@ -461,16 +705,90 @@ function TypingIndicator() {
 
 // ─── Message bubble ────────────────────────────────────────────────────────
 
+function formatMessageTime(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  const now = new Date()
+  const todayStr = now.toLocaleDateString('en-CA')
+  const msgStr = d.toLocaleDateString('en-CA')
+  const yesterdayStr = new Date(now - 86400000).toLocaleDateString('en-CA')
+  const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  if (msgStr === todayStr) return timeStr
+  if (msgStr === yesterdayStr) return `Yesterday, ${timeStr}`
+  const dateStr = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  return `${dateStr}, ${timeStr}`
+}
+
 function MessageBubble({ msg }) {
   const paragraphs = msg.text.split('\n').filter(p => p.trim())
+  const timeLabel = formatMessageTime(msg.timestamp)
   return (
     <div className={`message message--${msg.from}`}>
       {msg.from === 'noor' && <NoorAvatar size="message" />}
-      <div className="message-bubble">
-        {paragraphs.map((para, i) => (
-          <p key={i}>{para}</p>
-        ))}
-        {msg.streaming && <span className="stream-cursor" aria-hidden="true" />}
+      <div className="message-content">
+        <div className="message-bubble">
+          {paragraphs.map((para, i) => (
+            <p key={i}>{para}</p>
+          ))}
+          {msg.streaming && <span className="stream-cursor" aria-hidden="true" />}
+        </div>
+        {timeLabel && <span className="message-time">{timeLabel}</span>}
+      </div>
+    </div>
+  )
+}
+
+function AboutPanel({ onClose }) {
+  const overlayRef = useRef(null)
+  const handleOverlayClick = (e) => { if (e.target === overlayRef.current) onClose() }
+
+  const features = [
+    {
+      title: 'Chat',
+      desc: 'Ask Noor anything about food, nutrition, or health. She\'ll share what she knows — not opinions, but science most people never hear.',
+      note: 'Noor remembers your conversations and builds on them over time (Pro)',
+      tag: null,
+    },
+    {
+      title: 'Food Journal',
+      desc: 'Noor picks up meals from your conversations. Confirm what you\'ve eaten and your journal builds over time — so Noor can connect the dots across weeks, not just single chats.',
+      tag: 'pro',
+    },
+    {
+      title: 'Label Scanner',
+      desc: 'Scan any product label and Noor will break down what\'s worth noting — the good, the misleading, and the one ingredient most people miss.',
+      tag: 'coming soon',
+    },
+    {
+      title: 'Weekly Insights',
+      desc: 'Every week, Noor reviews your food journal and shares what she\'s noticed — patterns, gaps, and one thing worth adjusting.',
+      tag: 'pro',
+    },
+  ]
+
+  return (
+    <div ref={overlayRef} className="journal-overlay" onClick={handleOverlayClick}>
+      <div className="journal-panel about-panel">
+        <div className="journal-handle" />
+        <div className="about-header">
+          <img src="/noor-avatar.png" alt="Noor" className="about-avatar" />
+          <h2 className="about-title">Meet Noor</h2>
+        </div>
+        <p className="about-intro">
+          Noor is your nutrition companion. She doesn't track calories or push diets — she helps you understand what's really in your food and why it matters. The more you talk, the smarter she gets.
+        </p>
+        <div className="about-features">
+          {features.map((f, i) => (
+            <div key={i} className="about-feature">
+              <div className="about-feature-header">
+                <span className="about-feature-title">{f.title}</span>
+                {f.tag && <span className={`about-feature-tag about-feature-tag--${f.tag.replace(' ', '-')}`}>{f.tag}</span>}
+              </div>
+              <p className="about-feature-desc">{f.desc}</p>
+              {f.note && <p className="about-feature-note">{f.note}</p>}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -503,6 +821,10 @@ export default function ChatScreen() {
 
   const [privateMode, setPrivateMode] = useState(false)
   const [showMemoryMenu, setShowMemoryMenu] = useState(false)
+  const [pendingQueue, setPendingQueue] = useState(() => loadPendingQueue())
+  const [journalHistory, setJournalHistory] = useState(() => loadJournal())
+  const [showJournal, setShowJournal] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
 
   const bottomRef = useRef(null)
   const messagesRef = useRef(null)
@@ -510,6 +832,10 @@ export default function ChatScreen() {
   const openingFired = useRef(false)
   const memoryRef = useRef(memory)
   useEffect(() => { memoryRef.current = memory }, [memory])
+
+  const pendingQueueRef = useRef([])
+  useEffect(() => { pendingQueueRef.current = pendingQueue }, [pendingQueue])
+  useEffect(() => { savePendingQueue(pendingQueue) }, [pendingQueue])
 
   const chatContainerRef = useRef(null)
   const memoryMenuRef = useRef(null)
@@ -526,25 +852,40 @@ export default function ChatScreen() {
     scrollToBottom('smooth')
   }, [messages, showTyping])
 
-  // Trigger Noor's opening message on mount
+  // Trigger Noor's opening message on mount (or restore history)
   useEffect(() => {
     if (openingFired.current) return
     openingFired.current = true
 
+    const stored = loadChatHistory()
+    if (stored && stored.length > 0) {
+      const restoredMessages = stored.map((m, i) => ({
+        id: `restored-${i}`,
+        from: m.role === 'user' ? 'user' : 'noor',
+        text: m.content,
+        streaming: false,
+      }))
+      setMessages(restoredMessages)
+      setApiHistory(stored)
+      setReady(true)
+      setTimeout(() => inputRef.current?.focus(), 100)
+      return
+    }
+
     const OPENINGS = [
-      "I'm Noor. The gap between food marketing and nutritional science is massive, and it's confusing by design. You deserve clarity. What have you been eating a lot of lately?",
-      "I'm Noor. Most of what people believe about food came from marketing, not science. That is worth fixing. What did you eat today?",
-      "I'm Noor. The food industry spends billions making sure you never read the fine print. I read it for a living. What is something you eat most days without thinking about it?",
-      "I'm Noor. There is a reason the healthiest populations on earth eat nothing like what supermarkets push on us. What did you have for breakfast this morning?",
-      "I'm Noor. Somewhere between the health claims on the front of the pack and the ingredients on the back, the truth gets lost. What is one thing you have been eating a lot of recently?",
-      "I'm Noor. The same food can heal or harm depending on how it was made, where it came from, and when you eat it. Most labels will never tell you that. What did you eat last?",
-      "I'm Noor. People spend more time researching a phone case than the ingredients in their food. No judgement, the system is designed that way. What is something you bought at the shop this week?",
-      "I'm Noor. Half the things labelled healthy in a supermarket would not pass a basic nutrition review. That is not an accident. What have you been reaching for lately?",
+      "I'm Noor. Most of what people believe about healthy eating was written by the food industry, not by scientists. Good to have you here.",
+      "I'm Noor. There is more deliberate confusion in the food world than almost any other area of health. Happy to cut through some of it whenever you're ready.",
+      "I'm Noor. The gap between what the research says and what ends up on a food label is wider than most people realise. What's on your mind?",
+      "I'm Noor. Nutrition science is genuinely fascinating once you get past the marketing layer. What are you thinking about today?",
+      "I'm Noor. A lot of what passes for health advice is really just product placement in disguise. Good to meet you.",
+      "I'm Noor. The longest-lived populations on earth eat nothing like what supermarkets push as healthy. There is a lot to unpack there.",
+      "I'm Noor. I know a lot about what food actually does inside the body, as opposed to what the packaging claims. What would you like to explore?",
+      "I'm Noor. Food is one of the most consequential things we do every day and one of the least understood. Good to be here with you.",
     ]
     const OPENING = OPENINGS[Math.floor(Math.random() * OPENINGS.length)]
 
     setTimeout(() => {
-      setMessages([{ id: 'noor-open', from: 'noor', text: OPENING, streaming: false }])
+      setMessages([{ id: 'noor-open', from: 'noor', text: OPENING, streaming: false, timestamp: new Date().toISOString() }])
       setApiHistory([
         { role: 'user', content: 'Hi' },
         { role: 'assistant', content: OPENING },
@@ -567,12 +908,12 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, DAILY_CAP - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining)
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, getRecentJournal(14))
     const userHistory = [...apiHistory, { role: 'user', content: text }]
 
     setMessages(prev => [
       ...prev,
-      { id: `user-${Date.now()}`, from: 'user', text, streaming: false },
+      { id: `user-${Date.now()}`, from: 'user', text, streaming: false, timestamp: new Date().toISOString() },
     ])
     setTimeout(() => scrollToBottom('instant'), 0)
 
@@ -617,27 +958,84 @@ export default function ChatScreen() {
               m.id === noorMsgId ? { ...m, text: m.text + token } : m
             )
           }
-          return [...prev, { id: noorMsgId, from: 'noor', text: token, streaming: true }]
+          return [...prev, { id: noorMsgId, from: 'noor', text: token, streaming: true, timestamp: new Date().toISOString() }]
         })
       },
       () => {
         setMessages(prev =>
           prev.map(m => m.id === noorMsgId ? { ...m, streaming: false } : m)
         )
-        setApiHistory([
-          ...userHistory,
-          { role: 'assistant', content: noorText },
-        ])
+        const newApiHistory = [...userHistory, { role: 'assistant', content: noorText }]
+        setApiHistory(newApiHistory)
+        if (!privateMode) saveChatHistory(newApiHistory)
         setIsStreaming(false)
         setTimeout(() => inputRef.current?.focus(), 50)
 
         // Fire-and-forget: extract and persist any new user info
-        extractMemoryUpdate(text, noorText, currentMemory).then(updates => {
-          if (!updates) return
-          const merged = mergeMemory(currentMemory, updates)
-          saveMemory(merged)
-          setMemory(merged)
-        })
+        if (!privateMode) {
+          const alreadyPending = pendingQueueRef.current.map(e => `${e.meal}: ${e.items.join(', ')}`).join(' | ') || 'none'
+          const recentJournalStr = getRecentJournal(3).map(e => e.items.join(', ')).join(' | ') || 'none'
+          extractMemoryUpdate(text, noorText, currentMemory, userHistory, { pending: alreadyPending, journal: recentJournalStr }).then(result => {
+            if (!result) return
+            // Save memory updates
+            if (result.memory) {
+              const merged = mergeMemory(currentMemory, result.memory)
+              saveMemory(merged)
+              setMemory(merged)
+            }
+            // Save food journal entry
+            if (result.food && result.food.length > 0) {
+              setPendingQueue(prev => {
+                const norm = s => s.toLowerCase().trim()
+                const stemWords = s => s.replace(/s\b/gi, '').trim()
+                let updated = [...prev]
+                result.food.forEach(newEntry => {
+                  const newItems = newEntry.items.map(norm)
+                  const newDesc = stemWords(newItems.join(' '))
+                  const newLen = newEntry.items.join(' ').length
+                  // Primary: same meal type = same entry. Secondary: item overlap / containment.
+                  const existingIdx = updated.findIndex(e => {
+                    if (e.meal === newEntry.meal) return true
+                    const exItems = e.items.map(norm)
+                    const matches = newItems.filter(ni =>
+                      exItems.some(ei => ei.includes(ni) || ni.includes(ei))
+                    ).length
+                    if (matches / Math.max(newItems.length, exItems.length) >= 0.5) return true
+                    const exDesc = stemWords(exItems.join(' '))
+                    return newDesc.includes(exDesc) || exDesc.includes(newDesc)
+                  })
+                  if (existingIdx >= 0) {
+                    const existing = updated[existingIdx]
+                    if (existing.meal === newEntry.meal) {
+                      // Same meal: union items (Haiku should return the complete set, but union is safe either way)
+                      const exNorm = existing.items.map(norm)
+                      const merged = [...existing.items]
+                      newEntry.items.forEach(ni => {
+                        if (!exNorm.some(ei => ei.includes(norm(ni)) || norm(ni).includes(ei))) {
+                          merged.push(ni)
+                        }
+                      })
+                      updated[existingIdx] = { id: existing.id, detectedAt: existing.detectedAt || new Date().toISOString(), ...newEntry, items: merged }
+                    } else {
+                      // Item overlap match: only replace if new entry is more complete
+                      const exLen = existing.items.join(' ').length
+                      if (newLen >= exLen) {
+                        updated[existingIdx] = { id: existing.id, detectedAt: existing.detectedAt || new Date().toISOString(), ...newEntry }
+                      }
+                    }
+                  } else {
+                    updated.push({
+                      id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                      detectedAt: new Date().toISOString(),
+                      ...newEntry,
+                    })
+                  }
+                })
+                return updated
+              })
+            }
+          })
+        }
       },
       (err) => {
         setShowTyping(false)
@@ -649,6 +1047,7 @@ export default function ChatScreen() {
             from: 'noor',
             text: `Something went wrong. (${err})`,
             streaming: false,
+            timestamp: new Date().toISOString(),
           },
         ])
       }
@@ -687,6 +1086,7 @@ export default function ChatScreen() {
       from: 'noor',
       text: `${scanResult.productName} is on your shelf.`,
       streaming: false,
+      timestamp: new Date().toISOString(),
     }])
   }, [scanResult, productShelf])
 
@@ -700,6 +1100,7 @@ export default function ChatScreen() {
       from: 'noor',
       text,
       streaming: false,
+      timestamp: new Date().toISOString(),
     }])
   }, [scanResult])
 
@@ -712,7 +1113,9 @@ export default function ChatScreen() {
       {/* ── Header ── */}
       <header className="chat-header">
         <div className="chat-header-left">
-          <NoorAvatar size="header" />
+          <button className="noor-avatar-btn" onClick={() => setShowAbout(true)} aria-label="About Noor">
+            <NoorAvatar size="header" />
+          </button>
           <div className="chat-header-info">
             <span className="chat-header-name">Noor</span>
             <span className="chat-header-status">
@@ -734,18 +1137,51 @@ export default function ChatScreen() {
               <div className="memory-dropdown">
                 <button
                   className={`memory-option${!privateMode ? ' memory-option--active' : ''}`}
-                  onClick={() => { setPrivateMode(false); setShowMemoryMenu(false) }}
+                  onClick={() => {
+                    setPrivateMode(false)
+                    setShowMemoryMenu(false)
+                    setMessages(prev => [...prev, {
+                      id: 'private-mode-off-' + Date.now(),
+                      from: 'noor',
+                      text: "I'll remember again.",
+                      streaming: false,
+                      timestamp: new Date().toISOString(),
+                    }])
+                  }}
                 >
                   {!privateMode && <span className="memory-option-dot" />}
                   Remembers you
                 </button>
                 <button
                   className={`memory-option${privateMode ? ' memory-option--active' : ''}`}
-                  onClick={() => { setPrivateMode(true); setShowMemoryMenu(false) }}
+                  onClick={() => {
+                    setPrivateMode(true)
+                    setShowMemoryMenu(false)
+                    setMessages(prev => [...prev, {
+                      id: 'private-mode-' + Date.now(),
+                      from: 'noor',
+                      text: "Private session. Nothing from here carries forward.",
+                      streaming: false,
+                      timestamp: new Date().toISOString(),
+                    }])
+                  }}
                 >
                   {privateMode && <span className="memory-option-dot" />}
                   Doesn't remember
                 </button>
+                {window.location.hostname === 'localhost' && (
+                  <button
+                    className="memory-option memory-option--reset"
+                    onClick={() => {
+                      ['noor-memory', 'noor-food-journal', 'noor-chat-history', 'noor-pending-food',
+                       'noor_messages_date', 'noor_messages_count', 'noor_scans_date', 'noor_scans_count',
+                       'noor-product-shelf'].forEach(k => localStorage.removeItem(k))
+                      window.location.reload()
+                    }}
+                  >
+                    Reset all data
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -766,6 +1202,7 @@ export default function ChatScreen() {
                   from: 'noor',
                   text: "You have used your 2 free scans for today. They reset tomorrow morning. If you want more, Pro gives you 15 a day.",
                   streaming: false,
+                  timestamp: new Date().toISOString(),
                 }])
                 return
               }
@@ -777,6 +1214,7 @@ export default function ChatScreen() {
                 from: 'noor',
                 text: '\u{1F4F7} Label scanned',
                 streaming: false,
+                timestamp: new Date().toISOString(),
               }])
 
               const { base64, mimeType } = await compressImage(file)
@@ -795,6 +1233,7 @@ export default function ChatScreen() {
                     from: 'noor',
                     text: result.message,
                     streaming: false,
+                    timestamp: new Date().toISOString(),
                   }]
                 })
                 return
@@ -814,17 +1253,31 @@ export default function ChatScreen() {
                   from: 'noor',
                   text: result.analysis,
                   streaming: false,
+                  timestamp: new Date().toISOString(),
                 }]
               })
             }}
           />
+          <button
+            className="chat-journal-btn"
+            onClick={() => setShowJournal(true)}
+            aria-label="Open food journal"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4" y="3" width="13" height="18" rx="2" stroke="currentColor" strokeWidth="1.6" />
+              <line x1="8" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="8" y1="12" x2="13" y2="12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="8" y1="16" x2="11" y2="16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            {pendingQueue.length > 0 && <span className="journal-dot" />}
+          </button>
           <button
             className="chat-camera-btn"
             onClick={handleHeaderCameraClick}
             disabled={isScanning}
             aria-label="Open camera or choose image"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M8 7L9.5 5H14.5L16 7H19C20.1 7 21 7.9 21 9V18C21 19.1 20.1 20 19 20H5C3.9 20 3 19.1 3 18V9C3 7.9 3.9 7 5 7H8Z"
                 stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
@@ -854,6 +1307,46 @@ export default function ChatScreen() {
           <div ref={bottomRef} />
         </main>
       </div>
+
+      {/* ── Journal Panel ── */}
+      {showJournal && (
+        <JournalPanel
+          pendingQueue={pendingQueue}
+          journalHistory={journalHistory}
+          onConfirm={(id) => {
+            const entry = pendingQueue.find(e => e.id === id)
+            if (entry) {
+              const savedEntry = buildJournalEntry(entry)
+              persistJournalEntry(savedEntry)
+              setJournalHistory(prev => [...prev, savedEntry])
+            }
+            setPendingQueue(prev => prev.filter(e => e.id !== id))
+          }}
+          onDiscard={(id) => {
+            setPendingQueue(prev => prev.filter(e => e.id !== id))
+          }}
+          onMealChange={(id, meal) => {
+            setPendingQueue(prev => prev.map(e => e.id === id ? { ...e, meal } : e))
+          }}
+          onEditPending={(id, text) => {
+            setPendingQueue(prev => prev.map(e =>
+              e.id === id ? { ...e, items: text.split(',').map(s => s.trim()).filter(Boolean) } : e
+            ))
+          }}
+          onEditHistory={(entry, text, meal) => {
+            const updated = updateJournalEntry(entry, text, meal)
+            if (updated) setJournalHistory(loadJournal())
+          }}
+          onDeleteHistory={(entry) => {
+            deleteJournalEntry(entry)
+            setJournalHistory(prev => prev.filter(e => e.confirmedAt !== entry.confirmedAt))
+          }}
+          onClose={() => setShowJournal(false)}
+        />
+      )}
+
+      {/* ── About Panel ── */}
+      {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
 
       {/* ── Input ── */}
       <footer className="chat-footer">
