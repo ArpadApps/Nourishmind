@@ -96,6 +96,7 @@
   font-size: 10.5px;
   color: #8a7d6e;
   letter-spacing: 0.02em;
+  margin-left: 8px;
 }
 
 .memory-badge--btn {
@@ -629,8 +630,8 @@
 }
 
 .chat-nm-logo {
-  width: 44px;
-  height: 44px;
+  width: 62px;
+  height: 62px;
   object-fit: contain;
   display: block;
 }
@@ -1118,4 +1119,11 @@
 
 .journal-history-delete-cancel {
   color: #706560;
+}
+
+/* ─── Mobile ─────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .chat-header-status {
+    display: none;
+  }
 }
