@@ -550,12 +550,12 @@ Products they have already kept: ${shelfSummary}
 
 Write EXACTLY 3 to 4 sentences. You have a maximum budget of 80 words. This is a technical limit, not a suggestion. Before outputting your response, count every word. If your draft exceeds 80 words, delete sentences until it fits. Shorter is always better. No bullet points, no dashes, no em dashes, no exclamation marks. Flowing sentences only.
 
-Your response must include:
-1. One specific number from the label (grams, percentage, milligrams) to anchor your insight
-2. Name the single weakest ingredient and explain what it specifically does in the body at a mechanical level (enzymes, hormones, gut bacteria, cellular processes). Never be vague.
-3. One sentence explaining why the manufacturer uses it (cost, shelf life, texture, consumer psychology)
-4. One concrete practical alternative. Be smart about this: if the product is canned or packaged, do not default to "buy fresh instead." The user chose this format for a reason, respect that. Suggest a better version within the same format first (a cleaner canned brand, a different preserved option). Only hint at fresh if it is genuinely easy and makes a real difference. Remember that some preserved foods are nutritionally superior to fresh (whole canned sardines with bones provide more calcium than fresh fillets, canned tomatoes are higher in lycopene than raw). Meet the user where they are.
-5. End on a single thought that makes the user think after they put down the phone
+Your response must cover these points naturally in flowing prose, not as a checklist:
+- What is genuinely good about this product (lead with this)
+- The single weakest ingredient and briefly why it matters
+- One practical tip (a better version in the same format, what to look for on labels, or how to mitigate)
+
+That is all. Do not add a manufacturer explanation. Do not add a closing thought. Three points, woven into 3 sentences. Stop.
 
 Never use: "your body will thank you", "hidden cost", "think twice", "worth noting", "the real question is", or any generic health blog phrasing.
 
@@ -566,12 +566,7 @@ Here is an example of the quality and tone to match (do not copy this, use it as
 
 Begin your response with VALID: followed by the product name on the first line, then your analysis on the next line.
 
-STRUCTURE YOUR RESPONSE IN THIS EXACT ORDER:
-1. Lead with what is genuinely good about this product (1-2 sentences)
-2. Identify ONE weak point with a brief explanation of why it matters (1-2 sentences)
-3. One sentence on why the manufacturer includes it
-4. One practical alternative or mitigation (1 sentence)
-5. End with perspective, not alarm
+STRUCTURE: Good thing first, weak point second, practical tip third. Three sentences. Stop writing.
 
 HARD RULES:
 - NEVER exceed 100 words. Count them. If over 100, cut.
