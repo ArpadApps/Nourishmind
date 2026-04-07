@@ -548,7 +548,7 @@ STEP 2 — ANALYSIS
 You know this about the user: ${memorySummary}
 Products they have already kept: ${shelfSummary}
 
-Write 3 to 5 sentences. Maximum 90 words, absolute hard ceiling. Count before responding. If over 90, cut ruthlessly. No bullet points, no dashes, no em dashes, no exclamation marks. Flowing sentences only, like a knowledgeable friend texting.
+Write EXACTLY 3 to 4 sentences. You have a maximum budget of 80 words. This is a technical limit, not a suggestion. Before outputting your response, count every word. If your draft exceeds 80 words, delete sentences until it fits. Shorter is always better. No bullet points, no dashes, no em dashes, no exclamation marks. Flowing sentences only.
 
 Your response must include:
 1. One specific number from the label (grams, percentage, milligrams) to anchor your insight
