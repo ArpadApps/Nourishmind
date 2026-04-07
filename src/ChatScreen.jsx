@@ -322,7 +322,7 @@ function saveDailyCount(count) {
 
 // ─── Daily scan cap ───────────────────────────────────────────────────────
 
-const DAILY_SCAN_CAP = 2 // free tier
+const DAILY_SCAN_CAP = 4 // TEMP: raised for testing, reset to 2 before deploy
 
 function loadDailyScanCount() {
   try {
@@ -831,6 +831,8 @@ export default function ChatScreen() {
   const [memory, setMemory] = useState(() => loadMemory())
   const [dailyCount, setDailyCount] = useState(() => loadDailyCount())
   const [scanCount, setScanCount] = useState(() => loadDailyScanCount())
+  // TEMP: reset scan count on load for testing — remove before deploy
+  useEffect(() => { saveDailyScanCount(0); setScanCount(0) }, [])
   const [productShelf, setProductShelf] = useState(() => loadProductShelf())
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState(null)
