@@ -1123,29 +1123,20 @@ export default function ChatScreen() {
               Your NourishMind companion
             </span>
           </div>
-        </div>
-        <div className="chat-header-centre">
-          <img src="/NM-icon.png" alt="NourishMind" className="chat-nm-logo" />
-        </div>
-        <div className="chat-header-right">
           <div className="memory-menu-wrap" ref={memoryMenuRef}>
-            <button className="memory-badge memory-badge--btn" onClick={() => setShowMemoryMenu(v => !v)}>
-              <span className="memory-badge-text">{privateMode ? "Doesn't remember" : 'Remembers you'}</span>
-              <span className="memory-dot memory-badge-desktop" style={{ background: privateMode ? '#c0392b' : '#c8a97e' }} />
-              <span className="memory-badge-mobile-icon">
-                {privateMode ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8a97e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8a97e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                )}
-              </span>
+            <button className="memory-eye-btn" onClick={() => setShowMemoryMenu(v => !v)} aria-label={privateMode ? "Private mode on" : "Memory on"}>
+              {privateMode ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8a97e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8a97e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              )}
             </button>
             {showMemoryMenu && (
               <div className="memory-dropdown">
@@ -1199,10 +1190,16 @@ export default function ChatScreen() {
               </div>
             )}
           </div>
+        </div>
+        <div className="chat-header-centre">
+          <img src="/NM-icon.png" alt="NourishMind" className="chat-nm-logo" />
+        </div>
+        <div className="chat-header-right">
           <input
             ref={headerCameraInputRef}
             type="file"
             accept="image/*"
+            capture="environment"
             style={{ display: 'none' }}
             onChange={async (e) => {
               const file = e.target.files?.[0]

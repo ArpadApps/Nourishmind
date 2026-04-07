@@ -41,7 +41,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .chat-header-info {
@@ -96,36 +96,25 @@
   color: #6b5e4e;
 }
 
-/* ─── Memory badge ───────────────────────────────────────────────── */
-.memory-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  color: #8a7d6e;
-  letter-spacing: 0.02em;
-  margin-left: 8px;
-}
-
-.memory-badge--btn {
+/* ─── Memory eye button ──────────────────────────────────────────── */
+.memory-eye-btn {
   background: transparent;
   border: none;
   padding: 0;
   cursor: pointer;
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #c8a97e;
 }
 
 .memory-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  left: 0;
   background: transparent;
   border: 1px solid #3d3228;
   border-radius: 10px;
@@ -1137,28 +1126,9 @@
   color: #706560;
 }
 
-/* ─── Memory badge mobile/desktop visibility ─────────────────────── */
-.memory-badge-mobile-icon {
-  display: none;
-}
-
 /* ─── Mobile ─────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .chat-header-status {
     display: none;
-  }
-  .memory-badge-text,
-  .memory-badge-desktop {
-    display: none;
-  }
-  .memory-badge-mobile-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .memory-badge--btn {
-    flex-direction: row;
-    width: 44px;
-    height: 44px;
   }
 }
