@@ -1130,13 +1130,23 @@
   color: #706560;
 }
 
+/* ─── Memory badge mobile/desktop visibility ─────────────────────── */
+.memory-badge-mobile-icon {
+  display: none;
+}
+
 /* ─── Mobile ─────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .chat-header-status {
     display: none;
   }
-  .memory-badge-text {
+  .memory-badge-text,
+  .memory-badge-desktop {
     display: none;
+  }
+  .memory-badge-mobile-icon {
+    display: flex;
+    align-items: center;
   }
   .memory-badge {
     flex-direction: row;
