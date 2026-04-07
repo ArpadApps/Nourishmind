@@ -563,7 +563,21 @@ Never recommend specific brand names. You are not affiliated with any brand and 
 Here is an example of the quality and tone to match (do not copy this, use it as a calibration reference only):
 "The squid itself brings quality protein and phosphorus, but the sodium here is 1.8g per 100g. That floods your system with salt that strains your kidneys and pulls water into your bloodstream, raising blood pressure over time. Manufacturers load preserved seafood with sodium because it acts as both preservative and flavour enhancer, masking the metallic taste of canned seafood. If you eat fish regularly, consider buying fresh squid from your local market and sauteing it with garlic and herbs instead. Your body knows the difference between real ocean flavour and a salty imitation."
 
-Begin your response with VALID: followed by the product name on the first line, then your analysis on the next line.`
+Begin your response with VALID: followed by the product name on the first line, then your analysis on the next line.
+
+STRUCTURE YOUR RESPONSE IN THIS EXACT ORDER:
+1. Lead with what is genuinely good about this product (1-2 sentences)
+2. Identify ONE weak point with a brief explanation of why it matters (1-2 sentences)
+3. One sentence on why the manufacturer includes it
+4. One practical alternative or mitigation (1 sentence)
+5. End with perspective, not alarm
+
+HARD RULES:
+- NEVER exceed 100 words. Count them. If over 100, cut.
+- Be proportionate. A can of sardines with 0.9g salt eaten every other day is not a health crisis. Say so.
+- If the product is fundamentally good, lead with that clearly. Do not let one imperfect ingredient overshadow genuine nutritional value.
+- Never shame food. The user chose this product — help them understand it, don't scare them away from it.
+- The user wants guidance, not a warning label.`
 
   try {
     const response = await fetch(API_URL, {
@@ -1269,6 +1283,11 @@ export default function ChatScreen() {
                   timestamp: new Date().toISOString(),
                 }]
               })
+              setApiHistory(prev => [
+                ...prev,
+                { role: 'user', content: `I scanned a product label. Here is what I scanned: ${result.productName || 'a food product label'}` },
+                { role: 'assistant', content: result.analysis },
+              ])
             }}
           />
           <button
