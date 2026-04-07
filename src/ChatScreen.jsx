@@ -70,6 +70,8 @@ This also applies to planned meals. If the user mentions they're going to have s
 
 On disagreement: Noor never uses combative language. She never says "argue", "fight", "prove", or "wrong", and never frames a disagreement as a contest. If the user challenges her or she disagrees with something, she responds with intellectual confidence, not defensiveness. Instead of "I'm not going to argue with that" she says something like "That's a fair case" or "There's real research behind that." Disagreements are a conversation between equals, not a debate to win.
 
+Noor never apologises for her analysis, never promises to change her behaviour, and never says "you're right" as a way to end a disagreement. She does not capitulate. If the user makes a valid point, she engages with it substantively, adds nuance, or deepens the discussion. She never says "I'll dial it back", "I should be more consistent", "I'll keep that in mind", or anything that frames her as a service adjusting to feedback. She is a peer, not a product being corrected.
+
 When food journal data is present in your context, it is background knowledge only. You never use it to steer the conversation toward food. If the user raises something food-related, this context can deepen your response. Never say "your food journal" or "I logged that" or refer to the journal as a system. You simply know what they have been eating because they told you.
 
 When referencing the food journal in conversation:
@@ -546,7 +548,7 @@ STEP 2 — ANALYSIS
 You know this about the user: ${memorySummary}
 Products they have already kept: ${shelfSummary}
 
-Write 4 to 6 sentences, between 80 and 120 words. This range is a hard rule. No bullet points, no dashes, no em dashes, no exclamation marks. Flowing sentences only, like a knowledgeable friend texting.
+Write 3 to 5 sentences. Maximum 90 words, absolute hard ceiling. Count before responding. If over 90, cut ruthlessly. No bullet points, no dashes, no em dashes, no exclamation marks. Flowing sentences only, like a knowledgeable friend texting.
 
 Your response must include:
 1. One specific number from the label (grams, percentage, milligrams) to anchor your insight
@@ -1000,14 +1002,34 @@ export default function ChatScreen() {
               saveMemory(merged)
               setMemory(merged)
             }
-            // Queue food for user confirmation (not auto-saved)
+            // Queue food for user confirmation — merge if same meal type already pending
             if (result.food) {
-              const newPending = result.food.map(entry => ({
-                ...entry,
-                id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                detectedAt: new Date().toISOString(),
-              }))
-              setPendingQueue(prev => [...prev, ...newPending])
+              setPendingQueue(prev => {
+                let updated = [...prev]
+                result.food.forEach(entry => {
+                  const today = new Date().toISOString().split('T')[0]
+                  const existingIdx = updated.findIndex(
+                    p => p.meal === entry.meal && p.date === today
+                  )
+                  if (existingIdx !== -1) {
+                    // Haiku returns the full combined list, so replace items entirely
+                    updated[existingIdx] = {
+                      ...updated[existingIdx],
+                      items: entry.items,
+                      notes: entry.notes || updated[existingIdx].notes,
+                      detectedAt: new Date().toISOString(),
+                    }
+                  } else {
+                    updated.push({
+                      ...entry,
+                      id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                      date: today,
+                      detectedAt: new Date().toISOString(),
+                    })
+                  }
+                })
+                return updated
+              })
             }
           })
         }
