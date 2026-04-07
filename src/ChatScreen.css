@@ -11,12 +11,16 @@
 /* ─── Header ─────────────────────────────────────────────────────── */
 .chat-header {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   align-items: center;
   padding: 12px 16px;
   border-bottom: 1px solid #2a2319;
   background: #0e0d0c;
   flex-shrink: 0;
+}
+
+.chat-header-centre {
+  justify-self: center;
 }
 
 .chat-header-right {
@@ -27,6 +31,7 @@
   position: relative;
   flex-wrap: nowrap;
   flex-shrink: 0;
+  justify-self: end;
 }
 
 .chat-header-left {
