@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './ChatScreen.css'
+import { CHAT_MODEL, SCAN_MODEL, EXTRACTION_MODEL, DAILY_CAP, FREE_SCAN_LIMIT, PRO_SCAN_LIMIT } from './config'
 
 // ─── Noor's system prompt ──────────────────────────────────────────────────
 
@@ -245,8 +246,6 @@ function saveChatHistory(apiHistory) {
 
 // ─── Daily message cap ────────────────────────────────────────────────────
 
-const DAILY_CAP = 50 // trial user — TEMP: raised for testing, reset to 20 before deploy
-
 function todayString() {
   return new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
 }
@@ -275,7 +274,7 @@ function saveDailyCount(count) {
 
 // ─── Daily scan cap ───────────────────────────────────────────────────────
 
-const DAILY_SCAN_CAP = 4 // TEMP: raised for testing, reset to 2 before deploy
+const DAILY_SCAN_CAP = PRO_SCAN_LIMIT
 
 function loadDailyScanCount() {
   try {
@@ -471,7 +470,7 @@ For the food array:
       method: 'POST',
       headers: API_HEADERS,
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: EXTRACTION_MODEL,
         max_tokens: 512,
         messages: [{ role: 'user', content: prompt }],
       }),
@@ -541,7 +540,7 @@ The user sees only your analysis. No validation language, no steps, no word coun
       method: 'POST',
       headers: API_HEADERS,
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: SCAN_MODEL,
         max_tokens: 512,
         messages: [{
           role: 'user',
@@ -593,7 +592,7 @@ async function streamNoor(apiMessages, systemPrompt, onToken, onDone, onError) {
       method: 'POST',
       headers: API_HEADERS,
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: CHAT_MODEL,
         max_tokens: 1024,
         system: systemPrompt,
         messages: apiMessages,
@@ -842,14 +841,12 @@ export default function ChatScreen() {
     }
 
     const OPENINGS = [
-      "I'm Noor. Most of what people believe about healthy eating was written by the food industry, not by scientists. Good to have you here.",
+      "I'm Noor. Most of what people believe about food comes from marketing, not science. If something's on your mind about what you eat or how you feel, that's where I'm useful.",
       "I'm Noor. There is more deliberate confusion in the food world than almost any other area of health. Happy to cut through some of it whenever you're ready.",
-      "I'm Noor. The gap between what the research says and what ends up on a food label is wider than most people realise. What's on your mind?",
-      "I'm Noor. Nutrition science is genuinely fascinating once you get past the marketing layer. What are you thinking about today?",
       "I'm Noor. A lot of what passes for health advice is really just product placement in disguise. Good to meet you.",
       "I'm Noor. The longest-lived populations on earth eat nothing like what supermarkets push as healthy. There is a lot to unpack there.",
-      "I'm Noor. I know a lot about what food actually does inside the body, as opposed to what the packaging claims. What would you like to explore?",
       "I'm Noor. Food is one of the most consequential things we do every day and one of the least understood. Good to be here with you.",
+      "I'm Noor. The gap between what the research says and what ends up on a food label is wider than most people realise.",
     ]
     const OPENING = OPENINGS[Math.floor(Math.random() * OPENINGS.length)]
 
