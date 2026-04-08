@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './ChatScreen.css'
-import JournalPanel from './JournalPanel'
 
 // ─── Noor's system prompt ──────────────────────────────────────────────────
 
@@ -195,32 +194,6 @@ function buildJournalEntry(entry) {
   return { ...entry, date, confirmedAt: new Date().toISOString() }
 }
 
-function updateJournalEntry(original, newText, newMeal) {
-  try {
-    const journal = loadJournal()
-    const idx = journal.findIndex(e => e.confirmedAt === original.confirmedAt)
-    if (idx === -1) return null
-    const updated = { ...journal[idx], items: newText.split(',').map(s => s.trim()).filter(Boolean), meal: newMeal || journal[idx].meal }
-    journal[idx] = updated
-    localStorage.setItem(JOURNAL_KEY, JSON.stringify(journal))
-    return updated
-  } catch (err) {
-    console.error('[journal] update failed:', err)
-    return null
-  }
-}
-
-function deleteJournalEntry(entry) {
-  try {
-    const journal = loadJournal()
-    const filtered = journal.filter(e => e.confirmedAt !== entry.confirmedAt)
-    localStorage.setItem(JOURNAL_KEY, JSON.stringify(filtered))
-    return filtered
-  } catch (err) {
-    console.error('[journal] delete failed:', err)
-    return null
-  }
-}
 
 function persistJournalEntry(savedEntry) {
   try {
@@ -248,28 +221,6 @@ function getRecentJournal(days = 14) {
   return journal.filter(e => e.date >= cutoffStr)
 }
 
-// ─── Pending queue persistence ────────────────────────────────────────────
-
-const PENDING_KEY = 'noor-pending-food'
-
-function loadPendingQueue() {
-  try {
-    const raw = localStorage.getItem(PENDING_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-function savePendingQueue(queue) {
-  try {
-    if (queue.length === 0) {
-      localStorage.removeItem(PENDING_KEY)
-    } else {
-      localStorage.setItem(PENDING_KEY, JSON.stringify(queue))
-    }
-  } catch {}
-}
 
 // ─── Chat history ─────────────────────────────────────────────────────────
 
@@ -601,7 +552,7 @@ HARD RULES:
       method: 'POST',
       headers: API_HEADERS,
       body: JSON.stringify({
-        model: 'claude-opus-4-6',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 512,
         messages: [{
           role: 'user',
@@ -653,7 +604,7 @@ async function streamNoor(apiMessages, systemPrompt, onToken, onDone, onError) {
       method: 'POST',
       headers: API_HEADERS,
       body: JSON.stringify({
-        model: 'claude-opus-4-6',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 1024,
         system: systemPrompt,
         messages: apiMessages,
@@ -856,9 +807,6 @@ export default function ChatScreen() {
 
   const [privateMode, setPrivateMode] = useState(false)
   const [showMemoryMenu, setShowMemoryMenu] = useState(false)
-  const [pendingQueue, setPendingQueue] = useState(() => loadPendingQueue())
-  const [journalHistory, setJournalHistory] = useState(() => loadJournal())
-  const [showJournal, setShowJournal] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
 
   const bottomRef = useRef(null)
@@ -868,9 +816,6 @@ export default function ChatScreen() {
   const memoryRef = useRef(memory)
   useEffect(() => { memoryRef.current = memory }, [memory])
 
-  const pendingQueueRef = useRef([])
-  useEffect(() => { pendingQueueRef.current = pendingQueue }, [pendingQueue])
-  useEffect(() => { savePendingQueue(pendingQueue) }, [pendingQueue])
 
   const chatContainerRef = useRef(null)
   const memoryMenuRef = useRef(null)
@@ -1008,9 +953,8 @@ export default function ChatScreen() {
 
         // Fire-and-forget: extract and persist any new user info
         if (!privateMode) {
-          const alreadyPending = pendingQueueRef.current.map(e => `${e.meal}: ${e.items.join(', ')}`).join(' | ') || 'none'
           const recentJournalStr = getRecentJournal(3).map(e => e.items.join(', ')).join(' | ') || 'none'
-          extractMemoryUpdate(text, noorText, currentMemory, userHistory, { pending: alreadyPending, journal: recentJournalStr }).then(result => {
+          extractMemoryUpdate(text, noorText, currentMemory, userHistory, { journal: recentJournalStr }).then(result => {
             if (!result) return
             // Save memory updates
             if (result.memory) {
@@ -1018,33 +962,17 @@ export default function ChatScreen() {
               saveMemory(merged)
               setMemory(merged)
             }
-            // Queue food for user confirmation — merge if same meal type already pending
+            // Auto-save extracted food silently to journal
             if (result.food) {
-              setPendingQueue(prev => {
-                let updated = [...prev]
-                result.food.forEach(entry => {
-                  const today = new Date().toISOString().split('T')[0]
-                  const existingIdx = updated.findIndex(
-                    p => p.meal === entry.meal && p.date === today
-                  )
-                  if (existingIdx !== -1) {
-                    // Haiku returns the full combined list, so replace items entirely
-                    updated[existingIdx] = {
-                      ...updated[existingIdx],
-                      items: entry.items,
-                      notes: entry.notes || updated[existingIdx].notes,
-                      detectedAt: new Date().toISOString(),
-                    }
-                  } else {
-                    updated.push({
-                      ...entry,
-                      id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                      date: today,
-                      detectedAt: new Date().toISOString(),
-                    })
-                  }
+              result.food.forEach(entry => {
+                const today = new Date().toISOString().split('T')[0]
+                const savedEntry = buildJournalEntry({
+                  ...entry,
+                  id: `auto-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                  date: today,
+                  detectedAt: new Date().toISOString(),
                 })
-                return updated
+                persistJournalEntry(savedEntry)
               })
             }
           })
@@ -1305,19 +1233,6 @@ export default function ChatScreen() {
             }}
           />
           <button
-            className="chat-journal-btn"
-            onClick={() => setShowJournal(true)}
-            aria-label="Open food journal"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="4" y="3" width="13" height="18" rx="2" stroke="currentColor" strokeWidth="1.6" />
-              <line x1="8" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="8" y1="12" x2="13" y2="12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="8" y1="16" x2="11" y2="16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-            {pendingQueue.length > 0 && <span className="journal-dot" />}
-          </button>
-          <button
             className="chat-camera-btn"
             onClick={handleHeaderCameraClick}
             disabled={isScanning}
@@ -1353,43 +1268,6 @@ export default function ChatScreen() {
           <div ref={bottomRef} />
         </main>
       </div>
-
-      {/* ── Journal Panel ── */}
-      {showJournal && (
-        <JournalPanel
-          pendingQueue={pendingQueue}
-          journalHistory={journalHistory}
-          onConfirm={(id) => {
-            const entry = pendingQueue.find(e => e.id === id)
-            if (entry) {
-              const savedEntry = buildJournalEntry(entry)
-              persistJournalEntry(savedEntry)
-              setJournalHistory(prev => [...prev, savedEntry])
-            }
-            setPendingQueue(prev => prev.filter(e => e.id !== id))
-          }}
-          onDiscard={(id) => {
-            setPendingQueue(prev => prev.filter(e => e.id !== id))
-          }}
-          onMealChange={(id, meal) => {
-            setPendingQueue(prev => prev.map(e => e.id === id ? { ...e, meal } : e))
-          }}
-          onEditPending={(id, text) => {
-            setPendingQueue(prev => prev.map(e =>
-              e.id === id ? { ...e, items: text.split(',').map(s => s.trim()).filter(Boolean) } : e
-            ))
-          }}
-          onEditHistory={(entry, text, meal) => {
-            const updated = updateJournalEntry(entry, text, meal)
-            if (updated) setJournalHistory(loadJournal())
-          }}
-          onDeleteHistory={(entry) => {
-            deleteJournalEntry(entry)
-            setJournalHistory(prev => prev.filter(e => e.confirmedAt !== entry.confirmedAt))
-          }}
-          onClose={() => setShowJournal(false)}
-        />
-      )}
 
       {/* ── About Panel ── */}
       {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
