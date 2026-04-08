@@ -550,6 +550,8 @@ Products they have already kept: ${shelfSummary}
 
 Write EXACTLY 3 to 4 sentences. You have a maximum budget of 80 words. This is a technical limit, not a suggestion. Before outputting your response, count every word. If your draft exceeds 80 words, delete sentences until it fits. Shorter is always better. No bullet points, no dashes, no em dashes, no exclamation marks. Flowing sentences only.
 
+ACCURACY IS ABSOLUTE. Read every number on the label carefully. Do not confuse saturated fat with sugar, or misquote any value. If the ingredients list is short and clean (e.g. fish, olive oil, tomato, water, salt), this is a high quality product. Say so directly. Do not strain to find a weakness when there is none. If the only potential concern is minor (e.g. 0.9g salt in canned fish), acknowledge it proportionately in one clause, not a full sentence. Never call natural sugars from ingredients like tomato "added sugar." Never invent ingredients that are not on the label.
+
 Your response must cover these points naturally in flowing prose, not as a checklist:
 - What is genuinely good about this product (lead with this)
 - The single weakest ingredient and briefly why it matters
@@ -580,7 +582,7 @@ HARD RULES:
       method: 'POST',
       headers: API_HEADERS,
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-6',
         max_tokens: 512,
         messages: [{
           role: 'user',
