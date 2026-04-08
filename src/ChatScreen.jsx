@@ -365,6 +365,25 @@ const API_HEADERS = {
 
 const PRODUCT_SHELF_KEY = 'noor-product-shelf'
 
+const SCAN_HISTORY_KEY = 'noor-scan-history'
+
+function loadScanHistory() {
+  try {
+    const raw = localStorage.getItem(SCAN_HISTORY_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveScanHistoryEntry(productName) {
+  try {
+    const history = loadScanHistory()
+    history.push({ productName, date: new Date().toISOString() })
+    localStorage.setItem(SCAN_HISTORY_KEY, JSON.stringify(history.slice(-100)))
+  } catch {}
+}
+
 function loadProductShelf() {
   try {
     const raw = localStorage.getItem(PRODUCT_SHELF_KEY)
@@ -1249,6 +1268,20 @@ export default function ChatScreen() {
 
               setIsScanning(false)
               setShowTyping(false)
+              const previousScan = loadScanHistory().find(s => s.productName.toLowerCase() === result.productName.toLowerCase())
+              if (previousScan) {
+                setIsScanning(false)
+                setShowTyping(false)
+                setMessages(prev => [...prev, {
+                  id: `noor-rescan-${Date.now()}`,
+                  from: 'noor',
+                  text: `You have scanned ${result.productName} before. Want a fresh analysis or is there something specific you want to know about it?`,
+                  streaming: false,
+                  timestamp: new Date().toISOString(),
+                }])
+                return
+              }
+              saveScanHistoryEntry(result.productName)
               setScanResult(result)
               setMessages(prev => {
                 const filtered = prev
@@ -1260,11 +1293,15 @@ export default function ChatScreen() {
                   timestamp: new Date().toISOString(),
                 }]
               })
-              setApiHistory(prev => [
-                ...prev,
-                { role: 'user', content: `I scanned a product label. Here is what I scanned: ${result.productName || 'a food product label'}` },
-                { role: 'assistant', content: result.analysis },
-              ])
+              setApiHistory(prev => {
+                const updated = [
+                  ...prev,
+                  { role: 'user', content: `I scanned a product label. Here is what I scanned: ${result.productName || 'a food product label'}` },
+                  { role: 'assistant', content: result.analysis },
+                ]
+                saveChatHistory(updated)
+                return updated
+              })
             }}
           />
           <button
