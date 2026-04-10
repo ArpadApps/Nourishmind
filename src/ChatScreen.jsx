@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './ChatScreen.css'
 import { CHAT_MODEL, SCAN_MODEL, EXTRACTION_MODEL, DAILY_CAP, FREE_SCAN_LIMIT, PRO_SCAN_LIMIT } from './config'
+import DailyCardScreen from './components/DailyCardScreen'
 
 // ─── Noor's system prompt ──────────────────────────────────────────────────
 
@@ -796,6 +797,7 @@ export default function ChatScreen() {
   const [privateMode, setPrivateMode] = useState(false)
   const [showMemoryMenu, setShowMemoryMenu] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showDailyCard, setShowDailyCard] = useState(false)
 
   const bottomRef = useRef(null)
   const messagesRef = useRef(null)
@@ -1221,6 +1223,16 @@ export default function ChatScreen() {
           />
           <button
             className="chat-camera-btn"
+            onClick={() => setShowDailyCard(true)}
+            aria-label="Daily cards"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4" y="7" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.6"/>
+              <rect x="6" y="5" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.6"/>
+            </svg>
+          </button>
+          <button
+            className="chat-camera-btn"
             onClick={handleHeaderCameraClick}
             disabled={isScanning}
             aria-label="Open camera or choose image"
@@ -1258,6 +1270,11 @@ export default function ChatScreen() {
 
       {/* ── About Panel ── */}
       {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
+
+      {/* ── Daily Card Screen ── */}
+      {showDailyCard && (
+        <DailyCardScreen onClose={() => setShowDailyCard(false)} />
+      )}
 
       {/* ── Input ── */}
       <footer className="chat-footer">

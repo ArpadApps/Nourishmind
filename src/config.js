@@ -13,3 +13,6 @@ export const PRO_SCAN_LIMIT  = 5
 
 // TEMP: raised for testing — reset to 20 before deploy
 export const DAILY_CAP = 50
+
+// Card generation model — used for Day 15+ personalised cards
+export const MODEL_CARD_GENERATION = "claude-opus-4-20250514"
