@@ -1403,7 +1403,7 @@ export default function ChatScreen() {
               const fullMessage = `[The user just read today's Daily Card. Category: ${card.category}. Tag: "${card.tag}". The card said: "${card.insight}". They tapped it to discuss. Respond naturally about the topic. Do not quote the card back to them. Do not say "I see you read the card." Just pick up the thread as if you both know what they just read.]\n\nThoughts on this?`;
               const visibleMessage = "Thoughts on this?";
               sendTextWithCardContext(visibleMessage, fullMessage);
-            }, 600);
+            }, 1450);
           }}
         />
       )}

@@ -137,22 +137,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 40px;
+  padding: 16px 40px;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 15px;
-  font-weight: 700;
-  color: #0e0d0c;
-  background: #c8a97e;
-  border: none;
-  border-radius: 24px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #c8a97e;
+  background:
+    linear-gradient(145deg, #1c1815, #12100e) padding-box,
+    linear-gradient(145deg, #c8a97e, #8a6d4a, #d4b68a, #8a6d4a, #c8a97e) border-box;
+  border: 2px solid transparent;
+  border-radius: 30px;
   cursor: pointer;
-  transition: opacity 0.15s ease;
-  letter-spacing: 0.01em;
+  transition: box-shadow 0.2s ease;
+  letter-spacing: 0.06em;
+  box-shadow: 0 0 18px rgba(200, 169, 126, 0.12), 0 0 40px rgba(200, 169, 126, 0.05);
   width: 100%;
 }
 
-.welcome-btn:hover  { opacity: 0.85; }
-.welcome-btn:active { opacity: 0.70; }
+.welcome-btn:hover {
+  box-shadow: 0 0 28px rgba(200, 169, 126, 0.2), 0 0 60px rgba(200, 169, 126, 0.08);
+}
+.welcome-btn:active { opacity: 0.75; }
 
 /* ─── 8. Subtext ─────────────────────────────────────────────────── */
 .welcome-subtext {

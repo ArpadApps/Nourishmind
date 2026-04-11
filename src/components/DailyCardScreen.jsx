@@ -3,16 +3,26 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import DailyCard from "./DailyCard";
 import { getTodayCard, getCardDeck, getUserDay } from "../utils/cardEngine";
 
+const CATEGORY_COLORS = {
+  harmful_ingredient: "#b5544a",
+  harmful_habit: "#c8a97e",
+  protective: "#7a9a7e",
+};
+
 export default function DailyCardScreen({ onClose, onOpenChat }) {
   const [todayCard, setTodayCard] = useState(null);
   const [deck, setDeck] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState("visible");
+  const [containerHidden, setContainerHidden] = useState(false);
   const [saving, setSaving] = useState(false);
   const touchStartX = useRef(null);
   const touchMoved = useRef(false);
   const cardRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  const currentCard = deck[currentIdx] || todayCard;
 
   useEffect(() => {
     async function load() {
@@ -31,23 +41,178 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
     load();
   }, []);
 
+  // ─── Nova burst ───
+  function fireNova() {
+    if (!currentCard) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const color = CATEGORY_COLORS[currentCard?.category] || "#c8a97e";
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+
+    let dotAlpha = 1;
+    let dotRadius = 6;
+
+    const stars = Array.from({ length: 35 }, () => ({
+      x: cx + (Math.random() - 0.5) * canvas.width * 0.7,
+      y: cy + (Math.random() - 0.5) * canvas.height * 0.5,
+      r: 0.5 + Math.random() * 2,
+      alpha: 0,
+      maxAlpha: 0.3 + Math.random() * 0.7,
+      fadeIn: 0.02 + Math.random() * 0.03,
+      fadeOut: 0.005 + Math.random() * 0.01,
+      delay: 15 + Math.floor(Math.random() * 20),
+      phase: "waiting",
+    }));
+
+    let frame = 0;
+    let animId;
+
+    function tick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      frame++;
+
+      // Phase 1: Central dot flash (frames 0-15)
+      if (frame < 15) {
+        dotAlpha = Math.min(1, frame / 5);
+        dotRadius = 3 + frame * 0.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, dotRadius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${dotAlpha})`;
+        ctx.fill();
+        const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, dotRadius * 2.5);
+        grd.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${dotAlpha * 0.6})`);
+        grd.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        ctx.beginPath();
+        ctx.arc(cx, cy, dotRadius * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = grd;
+        ctx.fill();
+      }
+
+      // Phase 2: Wavy ripple rings (frames 10-55)
+      if (frame >= 10 && frame < 55) {
+        const elapsed = frame - 10;
+
+        for (let ring = 0; ring < 3; ring++) {
+          const ringDelay = ring * 6;
+          const ringElapsed = elapsed - ringDelay;
+          if (ringElapsed < 0) continue;
+
+          const ringRadius = ringElapsed * 5.5 + ring * 15;
+          const ringAlpha = Math.max(0, (1 - ringElapsed / 40) * (0.7 - ring * 0.15));
+          const ringWidth = Math.max(0.3, 3 - ringElapsed * 0.06 - ring * 0.3);
+
+          if (ringAlpha <= 0) continue;
+
+          const segments = 120;
+
+          // Wavy ring stroke
+          ctx.beginPath();
+          for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            const wobble = Math.sin(angle * 6 + ringElapsed * 0.15 + ring) * (4 + ringElapsed * 0.4)
+              + Math.sin(angle * 10 - ringElapsed * 0.1 + ring * 2) * (2 + ringElapsed * 0.2)
+              + Math.sin(angle * 3 + ringElapsed * 0.2) * (3 + ringElapsed * 0.3);
+            const finalR = ringRadius + wobble;
+            const px = cx + Math.cos(angle) * finalR;
+            const py = cy + Math.sin(angle) * finalR;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${ringAlpha})`;
+          ctx.lineWidth = ringWidth;
+          ctx.stroke();
+
+          // Soft glow around the wavy ring
+          ctx.beginPath();
+          for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            const wobble = Math.sin(angle * 6 + ringElapsed * 0.15 + ring) * (4 + ringElapsed * 0.4)
+              + Math.sin(angle * 10 - ringElapsed * 0.1 + ring * 2) * (2 + ringElapsed * 0.2)
+              + Math.sin(angle * 3 + ringElapsed * 0.2) * (3 + ringElapsed * 0.3);
+            const finalR = ringRadius + wobble;
+            const px = cx + Math.cos(angle) * finalR;
+            const py = cy + Math.sin(angle) * finalR;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${ringAlpha * 0.2})`;
+          ctx.lineWidth = ringWidth + 6;
+          ctx.stroke();
+        }
+      }
+
+      // Central dot fades after nova starts
+      if (frame >= 10 && frame < 25) {
+        dotAlpha = Math.max(0, 1 - (frame - 10) / 15);
+        ctx.beginPath();
+        ctx.arc(cx, cy, dotRadius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${dotAlpha})`;
+        ctx.fill();
+      }
+
+      // Phase 3: Stars twinkle (from frame 15 onward)
+      let starsAlive = false;
+      for (const s of stars) {
+        if (s.phase === "waiting" && frame >= s.delay) s.phase = "in";
+        if (s.phase === "in") {
+          s.alpha = Math.min(s.maxAlpha, s.alpha + s.fadeIn);
+          if (s.alpha >= s.maxAlpha) s.phase = "hold";
+          starsAlive = true;
+        } else if (s.phase === "hold") {
+          s.holdCount = (s.holdCount || 0) + 1;
+          if (s.holdCount > 30) s.phase = "out";
+          starsAlive = true;
+        } else if (s.phase === "out") {
+          s.alpha = Math.max(0, s.alpha - s.fadeOut);
+          if (s.alpha <= 0) s.phase = "done";
+          else starsAlive = true;
+        }
+        if (s.alpha > 0) {
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${s.alpha})`;
+          ctx.fill();
+        }
+      }
+
+      if (frame < 55 || frame < 25 || starsAlive) {
+        animId = requestAnimationFrame(tick);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    animId = requestAnimationFrame(tick);
+  }
+
   // ─── Animated close ───
   const handleClose = useCallback(() => {
     setPhase("exiting");
-    setTimeout(() => {
-      if (onClose) onClose();
-    }, 850);
-  }, [onClose]);
+    setTimeout(() => fireNova(), 400);
+    setTimeout(() => setContainerHidden(true), 1350);
+    setTimeout(() => { if (onClose) onClose(); }, 1400);
+  }, [onClose, currentCard]);
 
   // ─── Tap card → open chat with card context ───
   function handleCardTap() {
     if (touchMoved.current) return;
     const card = deck[currentIdx] || todayCard;
-    if (!card || !onOpenChat) return;
+    if (!card) return;
     setPhase("exiting");
-    setTimeout(() => {
-      onOpenChat(card);
-    }, 850);
+    setTimeout(() => fireNova(), 400);
+    setTimeout(() => setContainerHidden(true), 1350);
+    setTimeout(() => { if (onOpenChat) onOpenChat(card); }, 1400);
   }
 
   // ─── Swipe — distinguish from tap ───
@@ -130,8 +295,6 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
     }
   }
 
-  const currentCard = deck[currentIdx] || todayCard;
-
   if (loading || !currentCard) {
     return (
       <div style={styles.container}>
@@ -145,15 +308,28 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
   const exiting = phase === "exiting";
 
   return (
-    <div style={styles.container}>
+    <div style={{
+        ...styles.container,
+        opacity: containerHidden ? 0 : 1,
+        transition: exiting ? "opacity 0.15s ease" : undefined,
+      }}>
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 1001,
+          pointerEvents: "none",
+        }}
+      />
       <style>{`
-        @keyframes cardDissolve {
-          0%   { transform: scale(1);    filter: blur(0px)  brightness(1);   opacity: 1; }
-          25%  { transform: scale(1.02); filter: blur(0px)  brightness(1.6); opacity: 1; }
-          75%  { transform: scale(1.08); filter: blur(12px) brightness(1.8); opacity: 0.3; }
-          100% { transform: scale(1.12); filter: blur(20px) brightness(2);   opacity: 0; }
+        @keyframes cardCollapse {
+          0%   { transform: scale(1);    opacity: 1;   filter: blur(0px); }
+          60%  { transform: scale(0.15); opacity: 0.8; filter: blur(1px); }
+          85%  { transform: scale(0.03); opacity: 0.6; filter: blur(2px); }
+          100% { transform: scale(0);   opacity: 0;   filter: blur(4px); }
         }
-        @keyframes fadeOut {
+        @keyframes fadeOutFast {
           from { opacity: 1; }
           to   { opacity: 0; }
         }
@@ -163,7 +339,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
         onClick={handleClose}
         style={{
           ...styles.closeBtn,
-          animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
+          animation: exiting ? "fadeOutFast 0.2s ease forwards" : undefined,
         }}
         aria-label="Close"
       >
@@ -173,7 +349,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
       <div
         style={{
           ...styles.dayBadge,
-          animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
+          animation: exiting ? "fadeOutFast 0.2s ease forwards" : undefined,
         }}
       >
         {currentIdx === 0 ? "Today" : `Day ${currentCard.day}`}
@@ -182,7 +358,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
       <div
         style={{
           ...styles.cardWrapper,
-          animation: exiting ? "cardDissolve 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards" : undefined,
+          animation: exiting ? "cardCollapse 0.65s cubic-bezier(0.55, 0, 1, 0.45) forwards" : undefined,
         }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -197,7 +373,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
       <div
         style={{
           ...styles.tapHint,
-          animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
+          animation: exiting ? "fadeOutFast 0.2s ease forwards" : undefined,
         }}
       >
         Tap card to discuss with Noor
@@ -207,7 +383,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
         <div
           style={{
             ...styles.dotsRow,
-            animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
+            animation: exiting ? "fadeOutFast 0.2s ease forwards" : undefined,
           }}
         >
           {deck.map((_, i) => (
@@ -228,7 +404,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
       <div
         style={{
           ...styles.actionRow,
-          animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
+          animation: exiting ? "fadeOutFast 0.2s ease forwards" : undefined,
         }}
       >
         <button onClick={(e) => { e.stopPropagation(); handleSave(); }} style={styles.actionBtn} disabled={saving}>
