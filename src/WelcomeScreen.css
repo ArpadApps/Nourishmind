@@ -1,6 +1,8 @@
 /* ─── Page ───────────────────────────────────────────────────────── */
 .welcome {
-  min-height: 100svh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -203,11 +205,153 @@
   color: #3d3228;
 }
 
-/* ─── Mobile ─────────────────────────────────────────────────────── */
+/* ─── Mobile (width) ─────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .welcome {
     padding: 40px 20px 32px;
     align-items: flex-start;
+  }
+}
+
+/* ─── Short screens: moderate compression (≤ 900px tall) ─────────── */
+@media (max-height: 900px) {
+  .welcome {
+    padding: 32px 24px 28px;
+  }
+  .welcome-brand {
+    margin-bottom: 32px;
+  }
+  .welcome-nm-logo {
+    width: 84px;
+    height: 84px;
+  }
+  .welcome-eyebrow {
+    margin-bottom: 20px;
+  }
+  .welcome-headline {
+    font-size: 28px;
+    margin-bottom: 24px;
+  }
+  .welcome-divider {
+    margin-bottom: 24px;
+  }
+  .welcome-avatar-block {
+    margin-bottom: 16px;
+  }
+  .welcome-avatar {
+    width: 130px;
+    height: 130px;
+  }
+  .welcome-quote {
+    margin-bottom: 24px;
+  }
+  .welcome-pillars {
+    margin-bottom: 28px;
+  }
+}
+
+/* ─── Short screens: aggressive compression (≤ 750px tall) ──────── */
+@media (max-height: 750px) {
+  .welcome {
+    padding: 24px 24px 20px;
+  }
+  .welcome-brand {
+    margin-bottom: 20px;
+    gap: 8px;
+  }
+  .welcome-nm-logo {
+    width: 68px;
+    height: 68px;
+  }
+  .welcome-eyebrow {
+    margin-bottom: 14px;
+  }
+  .welcome-headline {
+    font-size: 24px;
+    margin-bottom: 18px;
+  }
+  .welcome-divider {
+    margin-bottom: 18px;
+  }
+  .welcome-avatar-block {
+    margin-bottom: 12px;
+  }
+  .welcome-avatar {
+    width: 110px;
+    height: 110px;
+  }
+  .welcome-avatar-glow {
+    margin-bottom: 8px;
+  }
+  .welcome-quote {
+    font-size: 11px;
+    margin-bottom: 18px;
+  }
+  .welcome-cta {
+    margin-bottom: 12px;
+  }
+  .welcome-subtext {
+    margin-bottom: 16px;
+  }
+  .welcome-pillars {
+    margin-bottom: 20px;
+  }
+}
+
+/* ─── Short screens: ultra-compact (≤ 670px tall) ───────────────── */
+@media (max-height: 670px) {
+  .welcome {
+    padding: 16px 24px 16px;
+  }
+  .welcome-brand {
+    margin-bottom: 14px;
+    gap: 6px;
+  }
+  .welcome-nm-logo {
+    width: 54px;
+    height: 54px;
+  }
+  .welcome-eyebrow {
+    margin-bottom: 10px;
+    font-size: 9px;
+  }
+  .welcome-headline {
+    font-size: 21px;
+    margin-bottom: 14px;
+  }
+  .welcome-divider {
+    margin-bottom: 14px;
+  }
+  .welcome-avatar-block {
+    margin-bottom: 10px;
+  }
+  .welcome-avatar {
+    width: 88px;
+    height: 88px;
+  }
+  .welcome-avatar-glow {
+    margin-bottom: 6px;
+  }
+  .welcome-avatar-name {
+    font-size: 12px;
+  }
+  .welcome-quote {
+    font-size: 11px;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .welcome-cta {
+    margin-bottom: 10px;
+  }
+  .welcome-btn {
+    padding: 13px 32px;
+    font-size: 15px;
+  }
+  .welcome-subtext {
+    margin-bottom: 10px;
+  }
+  .welcome-pillars {
+    display: none;
   }
 }
 
