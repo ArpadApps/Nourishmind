@@ -863,7 +863,7 @@ export default function ChatScreen() {
     }, 600)
   }, [])
 
-  const sendText = useCallback((text) => {
+  const sendText = useCallback((text, hiddenContext = null) => {
     if (!text || isStreaming) return
 
     const currentCount = loadDailyCount()
@@ -876,7 +876,8 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, DAILY_CAP - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, getRecentJournal(14))
+    const baseSystemPrompt = buildSystemPrompt(currentMemory, newRemaining, getRecentJournal(14))
+    const systemPrompt = hiddenContext ? `${baseSystemPrompt}\n\n${hiddenContext}` : baseSystemPrompt
     const userHistory = [...apiHistory, { role: 'user', content: text }]
 
     setMessages(prev => [
@@ -1273,7 +1274,14 @@ export default function ChatScreen() {
 
       {/* ── Daily Card Screen ── */}
       {showDailyCard && (
-        <DailyCardScreen onClose={() => setShowDailyCard(false)} />
+        <DailyCardScreen
+          onClose={() => setShowDailyCard(false)}
+          onOpenChat={(card) => {
+            setShowDailyCard(false);
+            const cardContext = `[CARD CONTEXT - not visible to user] The user just read today's Daily Card. Category: ${card.category}. Tag: ${card.tag}. The card said: "${card.insight}". They tapped it to discuss. Respond naturally about the topic. Do not quote the card back. Do not say "I see you read the card." Just pick up the thread.`;
+            sendText("Thoughts on this?", cardContext);
+          }}
+        />
       )}
 
       {/* ── Input ── */}

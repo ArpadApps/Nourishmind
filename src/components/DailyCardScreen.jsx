@@ -1,114 +1,229 @@
 // src/components/DailyCardScreen.jsx
-// Full-screen card view: today's card, swipeable deck, save/share
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import DailyCard from "./DailyCard";
 import { getTodayCard, getCardDeck, getUserDay } from "../utils/cardEngine";
 
-export default function DailyCardScreen({ onClose }) {
+export default function DailyCardScreen({ onClose, onOpenChat }) {
   const [todayCard, setTodayCard] = useState(null);
   const [deck, setDeck] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [phase, setPhase] = useState("entering");
+  const [saving, setSaving] = useState(false);
   const touchStartX = useRef(null);
+  const touchMoved = useRef(false);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
         const card = await getTodayCard();
-        const allCards = getCardDeck(); // newest first
+        const allCards = getCardDeck();
         setTodayCard(card);
         setDeck(allCards);
-        setCurrentIdx(0); // start at newest (today)
+        setCurrentIdx(0);
       } catch (err) {
         console.error("Failed to load card:", err);
       }
       setLoading(false);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setPhase("visible"));
+      });
     }
     load();
   }, []);
 
-  const currentCard = deck[currentIdx] || todayCard;
-  const day = getUserDay();
+  // ─── Animated close ───
+  const handleClose = useCallback(() => {
+    setPhase("exiting");
+    setTimeout(() => {
+      if (onClose) onClose();
+    }, 400);
+  }, [onClose]);
 
-  // ─── Swipe handling ───
-  function onTouchStart(e) {
-    touchStartX.current = e.touches[0].clientX;
+  // ─── Tap card → open chat with card context ───
+  function handleCardTap() {
+    if (touchMoved.current) return;
+    const card = deck[currentIdx] || todayCard;
+    if (!card || !onOpenChat) return;
+    setPhase("exiting");
+    setTimeout(() => {
+      onOpenChat(card);
+    }, 400);
   }
 
+  // ─── Swipe — distinguish from tap ───
+  function onTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+    touchMoved.current = false;
+  }
+  function onTouchMove() {
+    touchMoved.current = true;
+  }
   function onTouchEnd(e) {
     if (touchStartX.current === null) return;
     const diff = e.changedTouches[0].clientX - touchStartX.current;
-    const threshold = 50;
-    if (diff > threshold && currentIdx < deck.length - 1) {
-      setCurrentIdx((i) => i + 1); // swipe right → older card
-    } else if (diff < -threshold && currentIdx > 0) {
-      setCurrentIdx((i) => i - 1); // swipe left → newer card
+    if (Math.abs(diff) > 50) {
+      touchMoved.current = true;
+      if (diff > 50 && currentIdx < deck.length - 1) setCurrentIdx((i) => i + 1);
+      else if (diff < -50 && currentIdx > 0) setCurrentIdx((i) => i - 1);
     }
     touchStartX.current = null;
   }
 
-  // ─── Keyboard nav for desktop ───
+  // ─── Keyboard ───
   useEffect(() => {
     function onKey(e) {
-      if (e.key === "ArrowLeft" && currentIdx < deck.length - 1) {
-        setCurrentIdx((i) => i + 1);
-      } else if (e.key === "ArrowRight" && currentIdx > 0) {
-        setCurrentIdx((i) => i - 1);
-      } else if (e.key === "Escape" && onClose) {
-        onClose();
-      }
+      if (e.key === "ArrowLeft" && currentIdx < deck.length - 1) setCurrentIdx((i) => i + 1);
+      else if (e.key === "ArrowRight" && currentIdx > 0) setCurrentIdx((i) => i - 1);
+      else if (e.key === "Escape") handleClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [currentIdx, deck.length, onClose]);
+  }, [currentIdx, deck.length, handleClose]);
 
-  if (loading) {
+  // ─── Save to image ───
+  async function handleSave() {
+    const card = deck[currentIdx] || todayCard;
+    if (!cardRef.current || saving) return;
+    setSaving(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: "#0e0d0c",
+        scale: 2,
+        useCORS: true,
+      });
+      const link = document.createElement("a");
+      link.download = `nourishmind-day-${card.day}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      console.error("Save failed:", err);
+    }
+    setSaving(false);
+  }
+
+  // ─── Share ───
+  async function handleShare() {
+    const card = deck[currentIdx] || todayCard;
+    if (!cardRef.current) return;
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: "#0e0d0c",
+        scale: 2,
+        useCORS: true,
+      });
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      const file = new File([blob], `nourishmind-day-${card.day}.png`, { type: "image/png" });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "NourishMind",
+          text: card.tag,
+        });
+      } else {
+        handleSave();
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") console.error("Share failed:", err);
+    }
+  }
+
+  const currentCard = deck[currentIdx] || todayCard;
+
+  if (loading || !currentCard) {
     return (
       <div style={styles.container}>
-        <div style={styles.loadingText}>Preparing today's card...</div>
+        <div style={styles.loadingText}>
+          {loading ? "Preparing today\u2019s card\u2026" : "No card available"}
+        </div>
       </div>
     );
   }
 
-  if (!currentCard) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.loadingText}>No card available</div>
-      </div>
-    );
-  }
+  const overlayOpacity = phase === "visible" ? 1 : 0;
+  const cardTransform =
+    phase === "entering"
+      ? "translateY(-30px) scale(0.95)"
+      : phase === "exiting"
+      ? "translateY(20px) scale(0.92)"
+      : "translateY(0) scale(1)";
+  const cardOpacity = phase === "visible" ? 1 : 0;
 
   return (
-    <div style={styles.container}>
-      {/* Close button */}
-      {onClose && (
-        <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
-          ×
-        </button>
-      )}
+    <div
+      style={{
+        ...styles.container,
+        opacity: overlayOpacity,
+        transition: "opacity 0.35s ease",
+      }}
+    >
+      <button
+        onClick={handleClose}
+        style={{
+          ...styles.closeBtn,
+          opacity: phase === "visible" ? 1 : 0,
+          transition: "opacity 0.3s ease 0.15s",
+        }}
+        aria-label="Close"
+      >
+        ×
+      </button>
 
-      {/* Day indicator */}
-      <div style={styles.dayBadge}>
+      <div
+        style={{
+          ...styles.dayBadge,
+          opacity: phase === "visible" ? 1 : 0,
+          transform: phase === "visible" ? "translateY(0)" : "translateY(-10px)",
+          transition: "all 0.4s ease 0.1s",
+        }}
+      >
         {currentIdx === 0 ? "Today" : `Day ${currentCard.day}`}
       </div>
 
-      {/* Card area — swipeable */}
       <div
-        style={styles.cardWrapper}
+        style={{
+          ...styles.cardWrapper,
+          transform: cardTransform,
+          opacity: cardOpacity,
+          transition: "transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease",
+        }}
         onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onClick={handleCardTap}
       >
-        <DailyCard card={currentCard} />
+        <div ref={cardRef}>
+          <DailyCard card={currentCard} isShared={true} />
+        </div>
       </div>
 
-      {/* Deck dots */}
+      <div
+        style={{
+          ...styles.tapHint,
+          opacity: phase === "visible" ? 1 : 0,
+          transition: "opacity 0.4s ease 0.35s",
+        }}
+      >
+        Tap card to discuss with Noor
+      </div>
+
       {deck.length > 1 && (
-        <div style={styles.dotsRow}>
+        <div
+          style={{
+            ...styles.dotsRow,
+            opacity: phase === "visible" ? 1 : 0,
+            transition: "opacity 0.3s ease 0.2s",
+          }}
+        >
           {deck.map((_, i) => (
             <div
               key={i}
-              onClick={() => setCurrentIdx(i)}
+              onClick={(e) => { e.stopPropagation(); setCurrentIdx(i); }}
               style={{
                 ...styles.dot,
                 background: i === currentIdx ? "#c8a97e" : "#706560",
@@ -120,24 +235,18 @@ export default function DailyCardScreen({ onClose }) {
         </div>
       )}
 
-      {/* Action row */}
-      <div style={styles.actionRow}>
-        <button
-          onClick={() => {
-            // TODO: Wire to html2canvas for save-to-camera-roll
-            console.log("Save card:", currentCard.day);
-          }}
-          style={styles.actionBtn}
-        >
-          Save
+      <div
+        style={{
+          ...styles.actionRow,
+          opacity: phase === "visible" ? 1 : 0,
+          transform: phase === "visible" ? "translateY(0)" : "translateY(10px)",
+          transition: "all 0.4s ease 0.25s",
+        }}
+      >
+        <button onClick={(e) => { e.stopPropagation(); handleSave(); }} style={styles.actionBtn} disabled={saving}>
+          {saving ? "Saving\u2026" : "Save"}
         </button>
-        <button
-          onClick={() => {
-            // TODO: Wire to share API with isShared=true watermark
-            console.log("Share card:", currentCard.day);
-          }}
-          style={styles.actionBtn}
-        >
+        <button onClick={(e) => { e.stopPropagation(); handleShare(); }} style={styles.actionBtn}>
           Share
         </button>
       </div>
@@ -186,11 +295,19 @@ const styles = {
     justifyContent: "center",
     touchAction: "pan-y",
     userSelect: "none",
+    cursor: "pointer",
+  },
+  tapHint: {
+    color: "#706560",
+    fontSize: 11,
+    letterSpacing: "0.06em",
+    fontStyle: "italic",
+    marginTop: 10,
   },
   dotsRow: {
     display: "flex",
     gap: 4,
-    marginTop: 16,
+    marginTop: 12,
     alignItems: "center",
     justifyContent: "center",
     maxWidth: 200,
@@ -211,7 +328,7 @@ const styles = {
   actionRow: {
     display: "flex",
     gap: 16,
-    marginTop: 20,
+    marginTop: 16,
   },
   actionBtn: {
     background: "none",
