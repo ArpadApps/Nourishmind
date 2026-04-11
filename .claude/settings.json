@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e ':*)"
+      "Bash(node -e ':*)",
+      "Bash(node -e \"require\\('fs'\\).unlinkSync\\('public/test-icon.png'\\); console.log\\('test file removed'\\);\")"
     ]
   }
 }
