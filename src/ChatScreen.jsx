@@ -916,9 +916,6 @@ export default function ChatScreen() {
     setIsStreaming(true)
     setShowTyping(true)
 
-    console.log('[sendText] hiddenContext:', hiddenContext)
-    console.log('[sendText] full system prompt sent to API:\n', finalSystemPrompt)
-
     streamNoor(
       userHistory,
       finalSystemPrompt,
@@ -957,6 +954,124 @@ export default function ChatScreen() {
               setMemory(merged)
             }
             // Auto-save extracted food silently to journal
+            if (result.food) {
+              result.food.forEach(entry => {
+                const today = new Date().toISOString().split('T')[0]
+                const savedEntry = buildJournalEntry({
+                  ...entry,
+                  id: `auto-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                  date: today,
+                  detectedAt: new Date().toISOString(),
+                })
+                persistJournalEntry(savedEntry)
+              })
+            }
+          })
+        }
+      },
+      (err) => {
+        setShowTyping(false)
+        setIsStreaming(false)
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            from: 'noor',
+            text: `Something went wrong. (${err})`,
+            streaming: false,
+            timestamp: new Date().toISOString(),
+          },
+        ])
+      }
+    )
+  }, [isStreaming, apiHistory])
+
+  const sendTextWithCardContext = useCallback((displayText, apiText) => {
+    if (!displayText || isStreaming) return
+
+    const currentCount = loadDailyCount()
+    const remaining = Math.max(0, DAILY_CAP - currentCount)
+    if (remaining === 0) return
+
+    const newCount = currentCount + 1
+    saveDailyCount(newCount)
+    setDailyCount(newCount)
+
+    const currentMemory = memoryRef.current
+    const newRemaining = Math.max(0, DAILY_CAP - newCount)
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, getRecentJournal(14))
+    // apiText contains the card context inline — sent to the API, not shown in the UI
+    const userHistory = [...apiHistory, { role: 'user', content: apiText }]
+
+    setMessages(prev => [
+      ...prev,
+      { id: `user-${Date.now()}`, from: 'user', text: displayText, streaming: false, timestamp: new Date().toISOString() },
+    ])
+    setTimeout(() => scrollToBottom('instant'), 0)
+
+    // Center pulse on send
+    const container = chatContainerRef.current
+    if (container) {
+      const pulse = document.createElement('div')
+      Object.assign(pulse.style, {
+        position: 'absolute',
+        top: '0', left: '0', width: '100%', height: '100%',
+        pointerEvents: 'none',
+        zIndex: '1',
+        background: 'radial-gradient(ellipse 40% 30% at 50% 50%, rgba(200,169,126,0.07) 0%, rgba(200,169,126,0.03) 40%, rgba(14,13,12,0) 70%)',
+        opacity: '1',
+        transition: 'opacity 2.5s ease-out, transform 2.5s ease-out',
+        transform: 'scale(1)',
+      })
+      container.appendChild(pulse)
+      requestAnimationFrame(() => {
+        pulse.style.opacity = '0'
+        pulse.style.transform = 'scale(2.5)'
+      })
+      setTimeout(() => pulse.remove(), 2500)
+    }
+
+    const noorMsgId = `noor-${Date.now()}`
+    let noorText = ''
+
+    setIsStreaming(true)
+    setShowTyping(true)
+
+    streamNoor(
+      userHistory,
+      systemPrompt,
+      (token) => {
+        noorText += token
+        setShowTyping(false)
+        setMessages(prev => {
+          const exists = prev.find(m => m.id === noorMsgId)
+          if (exists) {
+            return prev.map(m =>
+              m.id === noorMsgId ? { ...m, text: m.text + token } : m
+            )
+          }
+          return [...prev, { id: noorMsgId, from: 'noor', text: token, streaming: true, timestamp: new Date().toISOString() }]
+        })
+      },
+      () => {
+        setMessages(prev =>
+          prev.map(m => m.id === noorMsgId ? { ...m, streaming: false } : m)
+        )
+        const newApiHistory = [...userHistory, { role: 'assistant', content: noorText }]
+        setApiHistory(newApiHistory)
+        if (!privateMode) saveChatHistory(newApiHistory)
+        setIsStreaming(false)
+        setTimeout(() => inputRef.current?.focus(), 50)
+
+        if (!privateMode) {
+          const recentJournalStr = getRecentJournal(3).map(e => e.items.join(', ')).join(' | ') || 'none'
+          extractMemoryUpdate(displayText, noorText, currentMemory, userHistory, { journal: recentJournalStr }).then(result => {
+            if (!result) return
+            if (result.memory) {
+              const merged = mergeMemory(currentMemory, result.memory)
+              saveMemory(merged)
+              setMemory(merged)
+            }
             if (result.food) {
               result.food.forEach(entry => {
                 const today = new Date().toISOString().split('T')[0]
@@ -1283,8 +1398,12 @@ export default function ChatScreen() {
           onClose={() => setShowDailyCard(false)}
           onOpenChat={(card) => {
             setShowDailyCard(false);
-            const cardContext = `[CARD CONTEXT - not visible to user] The user just read today's Daily Card. Category: ${card.category}. Tag: ${card.tag}. The card said: "${card.insight}". They tapped it to discuss. Respond naturally about the topic. Do not quote the card back. Do not say "I see you read the card." Just pick up the thread.`;
-            sendText("Thoughts on this?", cardContext);
+            setTimeout(() => {
+              // Build a message that contains context for the API but we only show the short part in the UI
+              const fullMessage = `[The user just read today's Daily Card. Category: ${card.category}. Tag: "${card.tag}". The card said: "${card.insight}". They tapped it to discuss. Respond naturally about the topic. Do not quote the card back to them. Do not say "I see you read the card." Just pick up the thread as if you both know what they just read.]\n\nThoughts on this?`;
+              const visibleMessage = "Thoughts on this?";
+              sendTextWithCardContext(visibleMessage, fullMessage);
+            }, 600);
           }}
         />
       )}

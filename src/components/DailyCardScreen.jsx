@@ -8,7 +8,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
   const [deck, setDeck] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [phase, setPhase] = useState("entering");
+  const [phase, setPhase] = useState("visible");
   const [saving, setSaving] = useState(false);
   const touchStartX = useRef(null);
   const touchMoved = useRef(false);
@@ -27,7 +27,6 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
         console.error("Failed to load card:", err);
       }
       setLoading(false);
-      setTimeout(() => setPhase("visible"), 50);
     }
     load();
   }, []);
@@ -37,7 +36,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
     setPhase("exiting");
     setTimeout(() => {
       if (onClose) onClose();
-    }, 400);
+    }, 850);
   }, [onClose]);
 
   // ─── Tap card → open chat with card context ───
@@ -48,7 +47,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
     setPhase("exiting");
     setTimeout(() => {
       onOpenChat(card);
-    }, 400);
+    }, 850);
   }
 
   // ─── Swipe — distinguish from tap ───
@@ -143,29 +142,28 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
     );
   }
 
-  const overlayOpacity = phase === "visible" ? 1 : 0;
-  const cardTransform =
-    phase === "entering"
-      ? "translateY(-30px) scale(0.95)"
-      : phase === "exiting"
-      ? "translateY(20px) scale(0.92)"
-      : "translateY(0) scale(1)";
-  const cardOpacity = phase === "visible" ? 1 : 0;
+  const exiting = phase === "exiting";
 
   return (
-    <div
-      style={{
-        ...styles.container,
-        opacity: overlayOpacity,
-        transition: "opacity 0.35s ease",
-      }}
-    >
+    <div style={styles.container}>
+      <style>{`
+        @keyframes cardDissolve {
+          0%   { transform: scale(1);    filter: blur(0px)  brightness(1);   opacity: 1; }
+          25%  { transform: scale(1.02); filter: blur(0px)  brightness(1.6); opacity: 1; }
+          75%  { transform: scale(1.08); filter: blur(12px) brightness(1.8); opacity: 0.3; }
+          100% { transform: scale(1.12); filter: blur(20px) brightness(2);   opacity: 0; }
+        }
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to   { opacity: 0; }
+        }
+      `}</style>
+
       <button
         onClick={handleClose}
         style={{
           ...styles.closeBtn,
-          opacity: phase === "visible" ? 1 : 0,
-          transition: "opacity 0.3s ease 0.15s",
+          animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
         }}
         aria-label="Close"
       >
@@ -175,9 +173,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
       <div
         style={{
           ...styles.dayBadge,
-          opacity: phase === "visible" ? 1 : 0,
-          transform: phase === "visible" ? "translateY(0)" : "translateY(-10px)",
-          transition: "all 0.4s ease 0.1s",
+          animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
         }}
       >
         {currentIdx === 0 ? "Today" : `Day ${currentCard.day}`}
@@ -186,9 +182,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
       <div
         style={{
           ...styles.cardWrapper,
-          transform: cardTransform,
-          opacity: cardOpacity,
-          transition: "transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease",
+          animation: exiting ? "cardDissolve 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards" : undefined,
         }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -203,8 +197,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
       <div
         style={{
           ...styles.tapHint,
-          opacity: phase === "visible" ? 1 : 0,
-          transition: "opacity 0.4s ease 0.35s",
+          animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
         }}
       >
         Tap card to discuss with Noor
@@ -214,8 +207,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
         <div
           style={{
             ...styles.dotsRow,
-            opacity: phase === "visible" ? 1 : 0,
-            transition: "opacity 0.3s ease 0.2s",
+            animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
           }}
         >
           {deck.map((_, i) => (
@@ -236,9 +228,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
       <div
         style={{
           ...styles.actionRow,
-          opacity: phase === "visible" ? 1 : 0,
-          transform: phase === "visible" ? "translateY(0)" : "translateY(10px)",
-          transition: "all 0.4s ease 0.25s",
+          animation: exiting ? "fadeOut 0.3s ease forwards" : undefined,
         }}
       >
         <button onClick={(e) => { e.stopPropagation(); handleSave(); }} style={styles.actionBtn} disabled={saving}>
