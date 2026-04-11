@@ -58,6 +58,12 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
     const g = parseInt(color.slice(3, 5), 16);
     const b = parseInt(color.slice(5, 7), 16);
 
+    // Nova ring state
+    let novaRadius = 0;
+    let novaAlpha = 1;
+    let novaWidth = 4;
+
+    // Central dot state
     let dotAlpha = 1;
     let dotRadius = 6;
 
@@ -97,59 +103,27 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
         ctx.fill();
       }
 
-      // Phase 2: Wavy ripple rings (frames 10-55)
-      if (frame >= 10 && frame < 55) {
-        const elapsed = frame - 10;
+      // Phase 2: Nova ring expands (frames 10-50)
+      if (frame >= 10 && frame < 50) {
+        novaRadius += 6 + (frame - 10) * 0.5;
+        novaAlpha = Math.max(0, 1 - (frame - 10) / 40);
+        novaWidth = Math.max(0.5, 4 - (frame - 10) * 0.08);
 
-        for (let ring = 0; ring < 3; ring++) {
-          const ringDelay = ring * 6;
-          const ringElapsed = elapsed - ringDelay;
-          if (ringElapsed < 0) continue;
+        ctx.beginPath();
+        ctx.arc(cx, cy, novaRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${novaAlpha * 0.8})`;
+        ctx.lineWidth = novaWidth;
+        ctx.stroke();
 
-          const ringRadius = ringElapsed * 5.5 + ring * 15;
-          const ringAlpha = Math.max(0, (1 - ringElapsed / 40) * (0.7 - ring * 0.15));
-          const ringWidth = Math.max(0.3, 3 - ringElapsed * 0.06 - ring * 0.3);
-
-          if (ringAlpha <= 0) continue;
-
-          const segments = 120;
-
-          // Wavy ring stroke
-          ctx.beginPath();
-          for (let i = 0; i <= segments; i++) {
-            const angle = (i / segments) * Math.PI * 2;
-            const wobble = Math.sin(angle * 6 + ringElapsed * 0.15 + ring) * (4 + ringElapsed * 0.4)
-              + Math.sin(angle * 10 - ringElapsed * 0.1 + ring * 2) * (2 + ringElapsed * 0.2)
-              + Math.sin(angle * 3 + ringElapsed * 0.2) * (3 + ringElapsed * 0.3);
-            const finalR = ringRadius + wobble;
-            const px = cx + Math.cos(angle) * finalR;
-            const py = cy + Math.sin(angle) * finalR;
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${ringAlpha})`;
-          ctx.lineWidth = ringWidth;
-          ctx.stroke();
-
-          // Soft glow around the wavy ring
-          ctx.beginPath();
-          for (let i = 0; i <= segments; i++) {
-            const angle = (i / segments) * Math.PI * 2;
-            const wobble = Math.sin(angle * 6 + ringElapsed * 0.15 + ring) * (4 + ringElapsed * 0.4)
-              + Math.sin(angle * 10 - ringElapsed * 0.1 + ring * 2) * (2 + ringElapsed * 0.2)
-              + Math.sin(angle * 3 + ringElapsed * 0.2) * (3 + ringElapsed * 0.3);
-            const finalR = ringRadius + wobble;
-            const px = cx + Math.cos(angle) * finalR;
-            const py = cy + Math.sin(angle) * finalR;
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${ringAlpha * 0.2})`;
-          ctx.lineWidth = ringWidth + 6;
-          ctx.stroke();
-        }
+        // Soft glow behind ring
+        const ringGlow = ctx.createRadialGradient(cx, cy, Math.max(0, novaRadius - 10), cx, cy, novaRadius + 20);
+        ringGlow.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
+        ringGlow.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${novaAlpha * 0.15})`);
+        ringGlow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        ctx.beginPath();
+        ctx.arc(cx, cy, novaRadius + 5, 0, Math.PI * 2);
+        ctx.fillStyle = ringGlow;
+        ctx.fill();
       }
 
       // Central dot fades after nova starts
@@ -186,7 +160,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
         }
       }
 
-      if (frame < 55 || frame < 25 || starsAlive) {
+      if (frame < 50 || frame < 25 || starsAlive) {
         animId = requestAnimationFrame(tick);
       } else {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
