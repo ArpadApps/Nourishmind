@@ -876,8 +876,10 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, DAILY_CAP - newCount)
-    const baseSystemPrompt = buildSystemPrompt(currentMemory, newRemaining, getRecentJournal(14))
-    const systemPrompt = hiddenContext ? `${baseSystemPrompt}\n\n${hiddenContext}` : baseSystemPrompt
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, getRecentJournal(14))
+    const finalSystemPrompt = hiddenContext
+      ? systemPrompt + "\n\n" + hiddenContext
+      : systemPrompt
     const userHistory = [...apiHistory, { role: 'user', content: text }]
 
     setMessages(prev => [
@@ -914,9 +916,12 @@ export default function ChatScreen() {
     setIsStreaming(true)
     setShowTyping(true)
 
+    console.log('[sendText] hiddenContext:', hiddenContext)
+    console.log('[sendText] full system prompt sent to API:\n', finalSystemPrompt)
+
     streamNoor(
       userHistory,
-      systemPrompt,
+      finalSystemPrompt,
       (token) => {
         noorText += token
         setShowTyping(false)

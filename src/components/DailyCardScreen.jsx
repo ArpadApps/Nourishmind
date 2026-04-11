@@ -27,9 +27,7 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
         console.error("Failed to load card:", err);
       }
       setLoading(false);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setPhase("visible"));
-      });
+      setTimeout(() => setPhase("visible"), 50);
     }
     load();
   }, []);
