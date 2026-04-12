@@ -1,6 +1,6 @@
 // src/utils/cardEngine.js
 // Handles: day calculation, card storage, card retrieval, Day 15+ generation
-import { MODEL_CARD_GENERATION } from "../config";
+import { CARD_MODEL } from "../config";
 import ONBOARDING_CARDS from "../data/onboardingCards";
 
 const STORAGE_KEY = "noor-daily-cards";
@@ -148,7 +148,7 @@ Last two categories used: ${recentCategories.join(", ") || "none"}`;
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: MODEL_CARD_GENERATION,
+        model: CARD_MODEL,
         max_tokens: 300,
         system: CARD_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userPrompt }],

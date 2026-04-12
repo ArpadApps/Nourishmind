@@ -113,7 +113,7 @@ function mergeMemory(existing, updates) {
   return merged
 }
 
-function buildSystemPrompt(memory, remaining, journalEntries) {
+function buildSystemPrompt(memory, remaining) {
   const now = new Date()
   const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' })
   const date = now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -135,94 +135,9 @@ Everything the user has said in this conversation happened TODAY (${date}) unles
     if (memory.notes?.length)     lines.push(`Other notes: ${memory.notes.join(', ')}`)
     prompt = prompt + '\n\n' + lines.join('\n')
   }
-  if (journalEntries && journalEntries.length > 0) {
-    // Build data coverage summary
-    const todayDate = new Date()
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(todayDate)
-      d.setDate(d.getDate() - i)
-      return d.toLocaleDateString('en-CA') // YYYY-MM-DD
-    }).reverse()
-    const daysWithData = new Set(journalEntries.map(e => e.date).filter(d => last7Days.includes(d)))
-    const daysWithEntries = last7Days.filter(d => daysWithData.has(d))
-    const daysWithoutEntries = last7Days.filter(d => !daysWithData.has(d))
-    const formatDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-
-    const journalLines = [
-      '',
-      '=== JOURNAL DATA COVERAGE ===',
-      `The user has ${journalEntries.length} meal entries over the last 7 days, covering ${daysWithEntries.length} out of 7 days.`,
-      `Days with entries: ${daysWithEntries.length > 0 ? daysWithEntries.map(formatDay).join(', ') : 'none'}`,
-      `Days without entries: ${daysWithoutEntries.length > 0 ? daysWithoutEntries.map(formatDay).join(', ') : 'none'}`,
-      '',
-      'IMPORTANT: You only know what the user ate on the days listed above. Do NOT assume anything about the days without entries. If you notice a pattern, qualify it — "from the days you\'ve logged" or "on the days I\'ve seen." Never say "you always" or "every day" unless you genuinely have 7 days of data confirming it.',
-      '===',
-      '',
-      '=== USER\'S FOOD JOURNAL (confirmed by user — treat as what they reported, not verified fact) ===',
-      'These are meals the user has confirmed in their food journal. They reflect what the user reported eating, in their own words. If the user corrects something in conversation, trust the correction over the journal — the journal may contain mistakes. Never say "your food journal" or mention logging.',
-      '',
-    ]
-    journalEntries.forEach(e => {
-      const meal = e.meal !== 'unspecified' ? ` (${e.meal})` : ''
-      const items = e.items.join(', ')
-      const note = e.notes ? ` — ${e.notes}` : ''
-      journalLines.push(`${e.date}${meal}: ${items}${note}`)
-    })
-    journalLines.push('', '=== END FOOD JOURNAL ===')
-    prompt = prompt + '\n' + journalLines.join('\n')
-  }
   prompt = prompt + `\n\nMessages remaining today: ${remaining}`
   return prompt
 }
-
-// ─── Food journal utilities ────────────────────────────────────────────────
-
-const JOURNAL_KEY = 'noor-food-journal'
-const JOURNAL_RETENTION_DAYS = 90
-const JOURNAL_MAX_ENTRIES = 500
-
-function loadJournal() {
-  try {
-    const raw = localStorage.getItem(JOURNAL_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-function buildJournalEntry(entry) {
-  const detectedAt = entry.detectedAt || new Date().toISOString()
-  const date = detectedAt.split('T')[0]
-  return { ...entry, date, confirmedAt: new Date().toISOString() }
-}
-
-
-function persistJournalEntry(savedEntry) {
-  try {
-    const journal = loadJournal()
-    journal.push(savedEntry)
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - JOURNAL_RETENTION_DAYS)
-    const cutoffStr = cutoff.toISOString().split('T')[0]
-    const pruned = journal.filter(e => e.date >= cutoffStr)
-    const trimmed = pruned.length > JOURNAL_MAX_ENTRIES
-      ? pruned.slice(pruned.length - JOURNAL_MAX_ENTRIES)
-      : pruned
-    localStorage.setItem(JOURNAL_KEY, JSON.stringify(trimmed))
-    console.log('[journal] saved to localStorage:', savedEntry, '| total entries:', trimmed.length)
-  } catch (err) {
-    console.error('[journal] localStorage write failed:', err)
-  }
-}
-
-function getRecentJournal(days = 14) {
-  const journal = loadJournal()
-  const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - days)
-  const cutoffStr = cutoff.toISOString().split('T')[0]
-  return journal.filter(e => e.date >= cutoffStr)
-}
-
 
 // ─── Chat history ─────────────────────────────────────────────────────────
 
@@ -723,18 +638,18 @@ function AboutPanel({ onClose }) {
       tag: null,
     },
     {
-      title: 'Food Journal',
-      desc: 'Noor picks up meals from your conversations. Confirm what you\'ve eaten and your journal builds over time — so Noor can connect the dots across weeks, not just single chats.',
+      title: 'Daily Cards',
+      desc: 'One insight a day from Noor — a small piece of knowledge that shifts how you see food. Collectible, shareable, and different every day.',
       tag: 'pro',
     },
     {
       title: 'Label Scanner',
       desc: 'Scan any product label and Noor will break down what\'s worth noting — the good, the misleading, and the one ingredient most people miss.',
-      tag: 'coming soon',
+      tag: null,
     },
     {
-      title: 'Weekly Insights',
-      desc: 'Every week, Noor reviews your food journal and shares what she\'s noticed — patterns, gaps, and one thing worth adjusting.',
+      title: 'Product Shelf',
+      desc: 'Every product you scan and keep goes here. Over time, Noor spots patterns across your choices — not to judge, but to connect dots you might not see.',
       tag: 'pro',
     },
   ]
@@ -876,7 +791,7 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, DAILY_CAP - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, getRecentJournal(14))
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining)
     const finalSystemPrompt = hiddenContext
       ? systemPrompt + "\n\n" + hiddenContext
       : systemPrompt
@@ -944,27 +859,12 @@ export default function ChatScreen() {
 
         // Fire-and-forget: extract and persist any new user info
         if (!privateMode) {
-          const recentJournalStr = getRecentJournal(3).map(e => e.items.join(', ')).join(' | ') || 'none'
-          extractMemoryUpdate(text, noorText, currentMemory, userHistory, { journal: recentJournalStr }).then(result => {
+          extractMemoryUpdate(text, noorText, currentMemory, userHistory).then(result => {
             if (!result) return
-            // Save memory updates
             if (result.memory) {
               const merged = mergeMemory(currentMemory, result.memory)
               saveMemory(merged)
               setMemory(merged)
-            }
-            // Auto-save extracted food silently to journal
-            if (result.food) {
-              result.food.forEach(entry => {
-                const today = new Date().toISOString().split('T')[0]
-                const savedEntry = buildJournalEntry({
-                  ...entry,
-                  id: `auto-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                  date: today,
-                  detectedAt: new Date().toISOString(),
-                })
-                persistJournalEntry(savedEntry)
-              })
             }
           })
         }
@@ -999,7 +899,7 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, DAILY_CAP - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, getRecentJournal(14))
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining)
     // apiText contains the card context inline — sent to the API, not shown in the UI
     const userHistory = [...apiHistory, { role: 'user', content: apiText }]
 
@@ -1064,25 +964,12 @@ export default function ChatScreen() {
         setTimeout(() => inputRef.current?.focus(), 50)
 
         if (!privateMode) {
-          const recentJournalStr = getRecentJournal(3).map(e => e.items.join(', ')).join(' | ') || 'none'
-          extractMemoryUpdate(displayText, noorText, currentMemory, userHistory, { journal: recentJournalStr }).then(result => {
+          extractMemoryUpdate(displayText, noorText, currentMemory, userHistory).then(result => {
             if (!result) return
             if (result.memory) {
               const merged = mergeMemory(currentMemory, result.memory)
               saveMemory(merged)
               setMemory(merged)
-            }
-            if (result.food) {
-              result.food.forEach(entry => {
-                const today = new Date().toISOString().split('T')[0]
-                const savedEntry = buildJournalEntry({
-                  ...entry,
-                  id: `auto-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                  date: today,
-                  detectedAt: new Date().toISOString(),
-                })
-                persistJournalEntry(savedEntry)
-              })
             }
           })
         }
