@@ -179,7 +179,7 @@ export default function DailyCard({ card, isShared = false, style: containerStyl
       style={{
         width: "100%",
         maxWidth: 400,
-        aspectRatio: "9 / 16",
+        aspectRatio: "9 / 14",
         background: "#0e0d0c",
         borderRadius: 16,
         position: "relative",

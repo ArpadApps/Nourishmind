@@ -322,15 +322,6 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
 
       <div
         style={{
-          ...styles.dayBadge,
-          animation: exiting ? "fadeOutFast 0.2s ease forwards" : undefined,
-        }}
-      >
-        {currentIdx === 0 ? "Today" : `Day ${currentCard.day}`}
-      </div>
-
-      <div
-        style={{
           ...styles.cardWrapper,
           animation: exiting ? "cardCollapse 0.65s cubic-bezier(0.55, 0, 1, 0.45) forwards" : undefined,
         }}
@@ -350,41 +341,42 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
           animation: exiting ? "fadeOutFast 0.2s ease forwards" : undefined,
         }}
       >
-        Tap card to discuss with Noor
+        Tap card to discuss
       </div>
-
-      {deck.length > 1 && (
-        <div
-          style={{
-            ...styles.dotsRow,
-            animation: exiting ? "fadeOutFast 0.2s ease forwards" : undefined,
-          }}
-        >
-          {deck.map((_, i) => (
-            <div
-              key={i}
-              onClick={(e) => { e.stopPropagation(); setCurrentIdx(i); }}
-              style={{
-                ...styles.dot,
-                background: i === currentIdx ? "#c8a97e" : "#706560",
-                opacity: i === currentIdx ? 1 : 0.3,
-                width: i === currentIdx ? 16 : 6,
-              }}
-            />
-          ))}
-        </div>
-      )}
 
       <div
         style={{
-          ...styles.actionRow,
+          ...styles.controlRow,
           animation: exiting ? "fadeOutFast 0.2s ease forwards" : undefined,
         }}
       >
-        <button onClick={(e) => { e.stopPropagation(); handleSave(); }} style={styles.actionBtn} disabled={saving}>
+        <button onClick={(e) => { e.stopPropagation(); handleSave(); }} style={styles.controlBtn} disabled={saving}>
           {saving ? "Saving\u2026" : "Save"}
         </button>
-        <button onClick={(e) => { e.stopPropagation(); handleShare(); }} style={styles.actionBtn}>
+
+        <div style={styles.navGroup}>
+          <button
+            onClick={(e) => { e.stopPropagation(); setCurrentIdx((i) => i + 1); }}
+            style={{ ...styles.arrowBtn, opacity: currentIdx < deck.length - 1 ? 0.7 : 0.15 }}
+            disabled={currentIdx >= deck.length - 1}
+            aria-label="Previous card"
+          >
+            ‹
+          </button>
+          <span style={styles.navLabel}>
+            {currentIdx === 0 ? "Today" : `Day ${currentCard.day}`}
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); setCurrentIdx((i) => i - 1); }}
+            style={{ ...styles.arrowBtn, opacity: currentIdx > 0 ? 0.7 : 0.15 }}
+            disabled={currentIdx <= 0}
+            aria-label="Next card"
+          >
+            ›
+          </button>
+        </div>
+
+        <button onClick={(e) => { e.stopPropagation(); handleShare(); }} style={styles.controlBtn}>
           Share
         </button>
       </div>
@@ -420,13 +412,6 @@ const styles = {
     WebkitTapHighlightColor: "transparent",
     WebkitTouchCallout: "none",
   },
-  dayBadge: {
-    color: "#706560",
-    fontSize: 11,
-    letterSpacing: "0.12em",
-    textTransform: "uppercase",
-    marginBottom: 12,
-  },
   cardWrapper: {
     width: "100%",
     maxWidth: 400,
@@ -444,24 +429,7 @@ const styles = {
     fontSize: 11,
     letterSpacing: "0.06em",
     fontStyle: "italic",
-    marginTop: 10,
-  },
-  dotsRow: {
-    display: "flex",
-    gap: 4,
     marginTop: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    maxWidth: 200,
-    flexWrap: "wrap",
-  },
-  dot: {
-    height: 6,
-    borderRadius: 3,
-    cursor: "pointer",
-    transition: "all 0.2s",
-    WebkitTapHighlightColor: "transparent",
-    WebkitTouchCallout: "none",
   },
   loadingText: {
     color: "#706560",
@@ -469,23 +437,54 @@ const styles = {
     fontStyle: "italic",
     letterSpacing: "0.06em",
   },
-  actionRow: {
+  controlRow: {
     display: "flex",
-    gap: 16,
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    maxWidth: 400,
     marginTop: 16,
+    padding: "0 4px",
   },
-  actionBtn: {
+  controlBtn: {
     background: "none",
     border: "1px solid #2a2826",
     borderRadius: 8,
     color: "#706560",
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: "0.1em",
-    padding: "8px 20px",
+    padding: "10px 22px",
+    minHeight: 44,
     cursor: "pointer",
     fontFamily: "Georgia, serif",
     transition: "all 0.2s",
-    WebkitTapHighlightColor: "transparent",
-    WebkitTouchCallout: "none",
+  },
+  navGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  arrowBtn: {
+    background: "none",
+    border: "none",
+    color: "#c8a97e",
+    fontSize: 24,
+    cursor: "pointer",
+    padding: "8px 12px",
+    minHeight: 44,
+    minWidth: 44,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontFamily: "Georgia, serif",
+    transition: "opacity 0.2s",
+  },
+  navLabel: {
+    color: "#706560",
+    fontSize: 11,
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+    minWidth: 48,
+    textAlign: "center",
   },
 };
