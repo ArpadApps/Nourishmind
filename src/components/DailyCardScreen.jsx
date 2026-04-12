@@ -21,11 +21,6 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
   const touchMoved = useRef(false);
   const cardRef = useRef(null);
   const canvasRef = useRef(null);
-  const dragPos = useRef({ x: 0, y: 0 });
-  const isDragging = useRef(false);
-  const dragStartTime = useRef(0);
-  const [cardPos, setCardPos] = useState({ x: 0, y: 0 });
-  const [isDragged, setIsDragged] = useState(false);
 
   const currentCard = deck[currentIdx] || todayCard;
 
@@ -194,47 +189,21 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
     setTimeout(() => { if (onOpenChat) onOpenChat(card); }, 1400);
   }
 
-  // ─── Swipe / drag — distinguish from tap ───
+  // ─── Swipe — distinguish from tap ───
   function onTouchStart(e) {
-    const touch = e.touches[0];
-    touchStartX.current = touch.clientX;
+    touchStartX.current = e.touches[0].clientX;
     touchMoved.current = false;
-    dragStartTime.current = Date.now();
-    dragPos.current = { x: touch.clientX, y: touch.clientY };
-
-    // Start drag after 150ms hold
-    isDragging.current = false;
   }
-  function onTouchMove(e) {
-    const touch = e.touches[0];
-    const dx = touch.clientX - touchStartX.current;
-    const distance = Math.sqrt(dx * dx + (touch.clientY - dragPos.current.y) ** 2);
-
-    // If held for 150ms+ OR moved significantly, start dragging
-    if (Date.now() - dragStartTime.current > 150 || distance > 15) {
-      isDragging.current = true;
-      touchMoved.current = true;
-      setIsDragged(true);
-      setCardPos({
-        x: touch.clientX - dragPos.current.x,
-        y: touch.clientY - dragPos.current.y,
-      });
-    }
+  function onTouchMove() {
+    touchMoved.current = true;
   }
   function onTouchEnd(e) {
-    if (isDragging.current) {
-      // Spring back to centre
-      isDragging.current = false;
-      setIsDragged(false);
-      setCardPos({ x: 0, y: 0 });
-    } else if (touchStartX.current !== null) {
-      // Check for swipe
-      const diff = e.changedTouches[0].clientX - touchStartX.current;
-      if (Math.abs(diff) > 50) {
-        touchMoved.current = true;
-        if (diff > 50 && currentIdx < deck.length - 1) setCurrentIdx((i) => i + 1);
-        else if (diff < -50 && currentIdx > 0) setCurrentIdx((i) => i - 1);
-      }
+    if (touchStartX.current === null) return;
+    const diff = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(diff) > 50) {
+      touchMoved.current = true;
+      if (diff > 50 && currentIdx < deck.length - 1) setCurrentIdx((i) => i + 1);
+      else if (diff < -50 && currentIdx > 0) setCurrentIdx((i) => i - 1);
     }
     touchStartX.current = null;
   }
@@ -364,9 +333,6 @@ export default function DailyCardScreen({ onClose, onOpenChat }) {
         style={{
           ...styles.cardWrapper,
           animation: exiting ? "cardCollapse 0.65s cubic-bezier(0.55, 0, 1, 0.45) forwards" : undefined,
-          transform: exiting ? undefined : `translateX(${cardPos.x}px) translateY(${cardPos.y}px) scale(${isDragged ? 1.03 : 1}) rotate(${cardPos.x * 0.05}deg)`,
-          transition: exiting ? undefined : (isDragging.current ? "none" : "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease"),
-          boxShadow: isDragged ? "0 20px 60px rgba(0,0,0,0.9)" : "0 8px 48px rgba(0,0,0,0.7)",
         }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -451,6 +417,8 @@ const styles = {
     zIndex: 10,
     padding: "4px 8px",
     lineHeight: 1,
+    WebkitTapHighlightColor: "transparent",
+    WebkitTouchCallout: "none",
   },
   dayBadge: {
     color: "#706560",
@@ -468,6 +436,8 @@ const styles = {
     touchAction: "pan-y",
     userSelect: "none",
     cursor: "pointer",
+    WebkitTapHighlightColor: "transparent",
+    WebkitTouchCallout: "none",
   },
   tapHint: {
     color: "#706560",
@@ -490,6 +460,8 @@ const styles = {
     borderRadius: 3,
     cursor: "pointer",
     transition: "all 0.2s",
+    WebkitTapHighlightColor: "transparent",
+    WebkitTouchCallout: "none",
   },
   loadingText: {
     color: "#706560",
@@ -513,5 +485,7 @@ const styles = {
     cursor: "pointer",
     fontFamily: "Georgia, serif",
     transition: "all 0.2s",
+    WebkitTapHighlightColor: "transparent",
+    WebkitTouchCallout: "none",
   },
 };
