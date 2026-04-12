@@ -694,6 +694,7 @@ export default function ChatScreen() {
   const [scanResult, setScanResult] = useState(null)
 
   const [privateMode, setPrivateMode] = useState(false)
+  const [showMemoryLabel, setShowMemoryLabel] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
   const [showDailyCard, setShowDailyCard] = useState(false)
 
@@ -1044,10 +1045,11 @@ export default function ChatScreen() {
           </div>
           <div className="memory-toggle-wrap">
             <button
-              className="memory-toggle"
+              className="memory-eye-btn"
               onClick={() => {
                 const goingPrivate = !privateMode
                 setPrivateMode(goingPrivate)
+                setShowMemoryLabel(true)
                 setMessages(prev => [...prev, {
                   id: `private-mode-${Date.now()}`,
                   from: 'noor',
@@ -1057,26 +1059,29 @@ export default function ChatScreen() {
                   streaming: false,
                   timestamp: new Date().toISOString(),
                 }])
+                setTimeout(() => setShowMemoryLabel(false), 2000)
               }}
-              aria-label={privateMode ? "Private mode on — tap to turn off" : "Memory on — tap to turn off"}
+              aria-label={privateMode ? "Private mode on" : "Memory on"}
             >
               {privateMode ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8a97e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
                   <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
                   <line x1="1" y1="1" x2="23" y2="23"/>
                 </svg>
               ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8a97e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
               )}
-              <span className="memory-toggle-label">
-                {privateMode ? "Doesn't remember" : "Remembers you"}
-              </span>
             </button>
-            {window.location.hostname === 'localhost' && (
+            {showMemoryLabel && (
+              <div className="memory-label">
+                {privateMode ? "Doesn't remember" : "Remembers you"}
+              </div>
+            )}
+            {window.location.hostname === 'localhost' && showMemoryLabel && (
               <button
                 className="memory-reset-btn"
                 onClick={() => {
