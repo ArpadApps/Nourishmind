@@ -694,7 +694,6 @@ export default function ChatScreen() {
   const [scanResult, setScanResult] = useState(null)
 
   const [privateMode, setPrivateMode] = useState(false)
-  const [showMemoryMenu, setShowMemoryMenu] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
   const [showDailyCard, setShowDailyCard] = useState(false)
 
@@ -707,7 +706,6 @@ export default function ChatScreen() {
 
 
   const chatContainerRef = useRef(null)
-  const memoryMenuRef = useRef(null)
   const headerCameraInputRef = useRef(null)
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
@@ -1044,70 +1042,51 @@ export default function ChatScreen() {
               Your NourishMind companion
             </span>
           </div>
-          <div className="memory-menu-wrap" ref={memoryMenuRef}>
-            <button className="memory-eye-btn" onClick={() => setShowMemoryMenu(v => !v)} aria-label={privateMode ? "Private mode on" : "Memory on"}>
+          <div className="memory-toggle-wrap">
+            <button
+              className="memory-toggle"
+              onClick={() => {
+                const goingPrivate = !privateMode
+                setPrivateMode(goingPrivate)
+                setMessages(prev => [...prev, {
+                  id: `private-mode-${Date.now()}`,
+                  from: 'noor',
+                  text: goingPrivate
+                    ? "Private session. Nothing from here carries forward."
+                    : "I'll remember again.",
+                  streaming: false,
+                  timestamp: new Date().toISOString(),
+                }])
+              }}
+              aria-label={privateMode ? "Private mode on — tap to turn off" : "Memory on — tap to turn off"}
+            >
               {privateMode ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8a97e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
                   <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
                   <line x1="1" y1="1" x2="23" y2="23"/>
                 </svg>
               ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8a97e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
               )}
+              <span className="memory-toggle-label">
+                {privateMode ? "Doesn't remember" : "Remembers you"}
+              </span>
             </button>
-            {showMemoryMenu && (
-              <div className="memory-dropdown">
-                <button
-                  className={`memory-option${!privateMode ? ' memory-option--active' : ''}`}
-                  onClick={() => {
-                    setPrivateMode(false)
-                    setShowMemoryMenu(false)
-                    setMessages(prev => [...prev, {
-                      id: 'private-mode-off-' + Date.now(),
-                      from: 'noor',
-                      text: "I'll remember again.",
-                      streaming: false,
-                      timestamp: new Date().toISOString(),
-                    }])
-                  }}
-                >
-                  {!privateMode && <span className="memory-option-dot" />}
-                  Remembers you
-                </button>
-                <button
-                  className={`memory-option${privateMode ? ' memory-option--active' : ''}`}
-                  onClick={() => {
-                    setPrivateMode(true)
-                    setShowMemoryMenu(false)
-                    setMessages(prev => [...prev, {
-                      id: 'private-mode-' + Date.now(),
-                      from: 'noor',
-                      text: "Private session. Nothing from here carries forward.",
-                      streaming: false,
-                      timestamp: new Date().toISOString(),
-                    }])
-                  }}
-                >
-                  {privateMode && <span className="memory-option-dot" />}
-                  Doesn't remember
-                </button>
-                {window.location.hostname === 'localhost' && (
-                  <button
-                    className="memory-option memory-option--reset"
-                    onClick={() => {
-                      ['noor-memory', 'noor-chat-history', 'noor-product-shelf', 'noor-daily-cards', 'noor-install-date',
-                       'noor_messages_date', 'noor_messages_count', 'noor_scans_date', 'noor_scans_count'].forEach(k => localStorage.removeItem(k))
-                      window.location.reload()
-                    }}
-                  >
-                    Reset all data
-                  </button>
-                )}
-              </div>
+            {window.location.hostname === 'localhost' && (
+              <button
+                className="memory-reset-btn"
+                onClick={() => {
+                  ['noor-memory', 'noor-chat-history', 'noor-product-shelf', 'noor-daily-cards', 'noor-install-date',
+                   'noor_messages_date', 'noor_messages_count', 'noor_scans_date', 'noor_scans_count'].forEach(k => localStorage.removeItem(k))
+                  window.location.reload()
+                }}
+              >
+                Reset
+              </button>
             )}
           </div>
         </div>
