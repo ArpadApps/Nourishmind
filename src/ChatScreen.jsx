@@ -113,7 +113,7 @@ function mergeMemory(existing, updates) {
   return merged
 }
 
-function buildSystemPrompt(memory, remaining) {
+function buildSystemPrompt(memory, remaining, productShelf) {
   const now = new Date()
   const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' })
   const date = now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -134,6 +134,18 @@ Everything the user has said in this conversation happened TODAY (${date}) unles
     if (memory.topics?.length)    lines.push(`Topics discussed before: ${memory.topics.join(', ')}`)
     if (memory.notes?.length)     lines.push(`Other notes: ${memory.notes.join(', ')}`)
     prompt = prompt + '\n\n' + lines.join('\n')
+  }
+  if (productShelf && productShelf.length > 0) {
+    const recentProducts = productShelf.slice(-10)
+    const shelfLines = [
+      '',
+      'PRODUCTS THIS PERSON HAS SCANNED AND KEPT (their Product Shelf — reference naturally if relevant, never list them unprompted):',
+    ]
+    recentProducts.forEach(p => {
+      const date = p.date || 'unknown date'
+      shelfLines.push(`- ${p.productName} (scanned ${date})`)
+    })
+    prompt = prompt + '\n' + shelfLines.join('\n')
   }
   prompt = prompt + `\n\nMessages remaining today: ${remaining}`
   return prompt
@@ -312,28 +324,29 @@ function compressImage(file, maxSizeBytes = 4 * 1024 * 1024) {
 
 // ─── Memory extraction ────────────────────────────────────────────────────
 
-async function extractMemoryUpdate(userMessage, noorResponse, existingMemory, recentHistory, alreadyKnown = {}) {
+async function extractMemoryUpdate(userMessage, noorResponse, existingMemory, recentHistory, isCardTriggered = false) {
   const today = new Date().toISOString().split('T')[0]
   const currentTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   const contextLines = (recentHistory || []).slice(-4).map(m =>
     m.role === 'user' ? `User: ${m.content}` : `Noor: ${m.content}`
   ).join('\n')
-  const prompt = `You have two jobs. Analyse this conversation exchange and return JSON only — no explanation, no markdown.
+  const prompt = `Analyse this conversation exchange and return JSON only — no explanation, no markdown.
 
-JOB 1 — MEMORY: Extract any personal information about the user.
-JOB 2 — FOOD JOURNAL: If the user mentioned eating, drinking, or having a meal, extract what they consumed.
+Extract any personal information about the user.
 
 IMPORTANT: "Noor" is the name of the AI companion in this app. If the user says "hi Noor" or "hey Noor" or addresses Noor by name, that is NOT the user's name. Never extract "Noor" or any variation of it as the user's name. Only extract a name if the user explicitly states their own name, like "my name is..." or "I'm...".
 
+${isCardTriggered ? `
+CRITICAL — DAILY CARD CONTEXT: This conversation was triggered by the user tapping a Daily Card, which is an educational insight about a health or nutrition topic. The user was READING about this topic, not describing their own habits or practices. Do NOT extract the card's topic, advice, or health practice as a personal habit, preference, or routine. For example, if the card was about post-meal walking and Noor discussed the benefits, do NOT record "user does post-meal walks" — the user was reading about it, not reporting that they do it. Only extract genuinely personal information the user volunteers in their own words, such as "I already do that" or "I tried this last week."
+` : ''}
+
 Existing memory: ${JSON.stringify(existingMemory || {})}
 
-Recent conversation context (use this to understand what the current exchange refers to):
+Recent conversation context:
 ${contextLines}
 
 User said: "${userMessage}"
 Noor replied: "${noorResponse}"
-Today's date: ${today}
-Current time: ${currentTime}
 
 Return a JSON object with this structure:
 {
@@ -344,42 +357,15 @@ Return a JSON object with this structure:
     "allergies": string[] or omit,
     "topics": string[] or omit,
     "notes": string[] or omit
-  },
-  "food": [
-    {
-      "date": "${today}",
-      "meal": "breakfast" | "lunch" | "dinner" | "snack",
-      "items": ["item1", "item2"],
-      "notes": "optional context or null"
-    }
-  ] or null
+  }
 }
 
-For the memory object: include only NEW information not already in existing memory. For array fields include only new items. If nothing new, use an empty object {}.
+Include only NEW information not already in existing memory. For array fields include only new items. If nothing new, return {}.
 
-Pending confirmation (meals already detected, not yet confirmed by user): ${alreadyKnown.pending || 'none'}
-Recently confirmed in journal: ${alreadyKnown.journal || 'none'}
-If the user adds items to a meal that already appears in the pending list above (same meal type), return the COMPLETE updated entry: ALL existing items for that meal PLUS the new items in one array. Do not return only the new items.
-If the user is discussing existing food in more detail (how it was cooked, what was added) without adding new items, that is NOT a new entry — return null for food.
-Only extract genuinely new food not already covered in pending or journal.
-
-CRITICAL — RECORD EXACTLY WHAT THE USER SAID. Do not interpret, expand, infer, or add specificity to food items.
-- If the user says "sprouts", record "sprouts" — NOT "broccoli sprouts" or "mung bean sprouts"
-- If the user says "fish", record "fish" — NOT "sea bass" or "trout"
-- If the user says "beans", record "beans" — NOT "kidney beans" or "black beans"
-- Never infer a specific variety from conversation context, Noor's replies, or memory
-- The journal is a factual record of the user's exact words. If it's ambiguous, leave it ambiguous.
-
-For the food array:
-- Return null if there is genuinely nothing to log.
-- REPORTING means the user is telling you what they ate, are eating, or plan to eat. Examples: "I had eggs for breakfast", "just ate a salad", "having steak for lunch", "I'll have chicken today", "going to make pasta tonight", "thinking of having fish". All of these get logged.
-- ASKING means the user is asking about what they ate in the past. Examples: "what did I eat yesterday?", "what have I been eating?". These NEVER get logged. Return null.
-- If the user's message is a question about past food and Noor answers by listing foods, that is RECALL — not a new food entry. Return null.
-- Single-word answers to Noor's food questions ARE food entries.
-- When a meal is built across multiple exchanges (e.g., user says "chicken" then later says "with rice and veggies"), combine ALL food items mentioned across the recent conversation context into ONE entry. Do not create separate entries for each part of the same meal.
-- Group items from the same meal into one array element. If two distinct meals are mentioned (e.g. "eggs for breakfast and a sandwich at lunch"), return two separate elements.
-- Only log food the USER ate or is eating, not food Noor suggested.
-- For meal type: use explicit mentions first ("I had X for breakfast" → breakfast). If no explicit mention, infer from current time: before 11:00 → breakfast, 11:00–14:00 → lunch, 17:00–21:00 → dinner, all other times → snack. Never return "unspecified".`
+CRITICAL — RECORD EXACTLY WHAT THE USER SAID. Do not interpret, expand, or infer.
+- If the user says "I walk after meals", record "walks after meals" — not "practices post-meal walking for glucose regulation"
+- If the user mentions a food preference, record their exact words
+- The memory is a factual record, not an interpretation`
 
   try {
     const response = await fetch(API_URL, {
@@ -399,11 +385,9 @@ For the food array:
     const parsed = JSON.parse(match[0])
 
     const memoryUpdates = parsed.memory || {}
-    const foodEntries = Array.isArray(parsed.food) && parsed.food.length > 0 ? parsed.food : null
 
     return {
       memory: Object.keys(memoryUpdates).length ? memoryUpdates : null,
-      food: foodEntries,
     }
   } catch {
     return null
@@ -436,7 +420,7 @@ Products they have already kept: ${shelfSummary}
 
 ANALYSIS — write 3 to 4 sentences, 80 words maximum. This is a hard limit — stay under it. Flowing prose only. No bullet points, no dashes, no em dashes, no exclamation marks, no headers, no labels, no structure. Just Noor talking.
 
-Cover naturally in prose: what is genuinely good about this product (lead with this), the single weakest point and why it matters, one practical tip (what to look for on labels, or how to mitigate).
+Cover naturally in prose: what is genuinely good about this product (lead with this), the single weakest point and why it matters in context, and one specific thing the user can check on other labels to compare. Your last sentence must teach something concrete the user can apply next time they pick up a similar product. Never end with a general statement about clean ingredients, real food, or simple lists — the user can see the ingredients themselves.
 
 ACCURACY IS ABSOLUTE. Read every number on the label carefully. Do not confuse saturated fat with sugar, or misquote any value. If the ingredients list is short and clean, say so. Do not strain to find a weakness when there is none. If the only concern is minor, acknowledge it proportionately in one clause. Never call natural sugars from whole ingredients "added sugar." Never invent ingredients not on the label.
 
@@ -444,7 +428,7 @@ Never use: "your body will thank you", "hidden cost", "think twice", "worth noti
 
 Never recommend specific brand names. Teach the user what to look for on a label so they can judge any product themselves.
 
-Be proportionate. A can of sardines with 0.9g salt eaten every other day is not a health crisis. Say so. If the product is fundamentally good, lead with that clearly. Never shame food.
+Be proportionate. A can of sardines with 0.9g salt eaten occasionally is not a crisis, but it is the number worth comparing across brands. When salt, sugar, or saturated fat is the only concern, frame it as a comparison point the user can use — "if you are choosing between brands, this is the line to compare" — not a warning, not a dismissal. Teach the user to read, not to worry.
 
 Example of the tone and quality to match (do not copy, use as calibration only):
 "Clean list — sardines, olive oil, tomato, salt. The 1.01g sodium per 100g is the one thing to watch, though for canned fish that is actually moderate, and rinsing them briefly under cold water before eating knocks off a good portion of the surface salt."
@@ -791,7 +775,7 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, DAILY_CAP - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining)
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf)
     const finalSystemPrompt = hiddenContext
       ? systemPrompt + "\n\n" + hiddenContext
       : systemPrompt
@@ -899,7 +883,7 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, DAILY_CAP - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining)
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf)
     // apiText contains the card context inline — sent to the API, not shown in the UI
     const userHistory = [...apiHistory, { role: 'user', content: apiText }]
 
@@ -964,7 +948,7 @@ export default function ChatScreen() {
         setTimeout(() => inputRef.current?.focus(), 50)
 
         if (!privateMode) {
-          extractMemoryUpdate(displayText, noorText, currentMemory, userHistory).then(result => {
+          extractMemoryUpdate(displayText, noorText, currentMemory, userHistory, true).then(result => {
             if (!result) return
             if (result.memory) {
               const merged = mergeMemory(currentMemory, result.memory)
@@ -1115,9 +1099,8 @@ export default function ChatScreen() {
                   <button
                     className="memory-option memory-option--reset"
                     onClick={() => {
-                      ['noor-memory', 'noor-food-journal', 'noor-chat-history', 'noor-pending-food',
-                       'noor_messages_date', 'noor_messages_count', 'noor_scans_date', 'noor_scans_count',
-                       'noor-product-shelf'].forEach(k => localStorage.removeItem(k))
+                      ['noor-memory', 'noor-chat-history', 'noor-product-shelf', 'noor-daily-cards', 'noor-install-date',
+                       'noor_messages_date', 'noor_messages_count', 'noor_scans_date', 'noor_scans_count'].forEach(k => localStorage.removeItem(k))
                       window.location.reload()
                     }}
                   >
@@ -1144,11 +1127,11 @@ export default function ChatScreen() {
               e.target.value = ''
 
               const currentScanCount = loadDailyScanCount()
-              if (currentScanCount >= DAILY_SCAN_CAP) {
+              if (currentScanCount >= FREE_SCAN_LIMIT) {
                 setMessages(prev => [...prev, {
                   id: `noor-scan-${Date.now()}`,
                   from: 'noor',
-                  text: "You have used your 2 free scans for today. They reset tomorrow morning. If you want more, Pro gives you 15 a day.",
+                  text: `You've reached your daily scan limit. Scans reset tomorrow morning.`,
                   streaming: false,
                   timestamp: new Date().toISOString(),
                 }])
@@ -1287,8 +1270,8 @@ export default function ChatScreen() {
             setShowDailyCard(false);
             setTimeout(() => {
               // Build a message that contains context for the API but we only show the short part in the UI
-              const fullMessage = `[The user just read today's Daily Card. Category: ${card.category}. Tag: "${card.tag}". The card said: "${card.insight}". They tapped it to discuss. Respond naturally about the topic. Do not quote the card back to them. Do not say "I see you read the card." Just pick up the thread as if you both know what they just read.]\n\nThoughts on this?`;
-              const visibleMessage = "Thoughts on this?";
+              const fullMessage = `[DAILY CARD DISCUSSION — The user just read today's Daily Card. Category: ${card.category}. Tag: "${card.tag}". The card said: "${card.insight}". They tapped it to discuss. Respond naturally about the topic as an interesting idea worth exploring. Do not quote the card back to them. Do not say "I see you read the card." CRITICAL: The user read about this topic on a card. That does NOT mean they practice it, believe it, or have experience with it. Do not assume they already do this. Do not say "great that you do this" or "since you already know about this." Treat it as a topic they are curious about, nothing more, unless they explicitly tell you otherwise in their own words.]\n\n${card.tag || "Thoughts on this?"}`;
+              const visibleMessage = card.tag || "Thoughts on this?";
               sendTextWithCardContext(visibleMessage, fullMessage);
             }, 1450);
           }}
