@@ -56,6 +56,21 @@
   color: #e8ddd0;
   line-height: 1.2;
   letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+}
+
+.plan-badge {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  position: relative;
+  top: -1px;
 }
 
 .chat-header-status {
@@ -635,6 +650,31 @@
   color: #e8d4b0;
 }
 
+/* ─── Retry button ───────────────────────────────────────────────────────── */
+.retry-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 4px 22px 8px;
+}
+
+.retry-btn {
+  background: none;
+  border: 1px solid #2a2826;
+  border-radius: 8px;
+  color: #706560;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  padding: 8px 20px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.retry-btn:hover {
+  color: #a09585;
+  border-color: #3d3228;
+}
+
 /* ─── Label scan buttons ─────────────────────────────────────────────────── */
 
 .scan-buttons {
@@ -859,3 +899,67 @@
 }
 
 .settings-btn-danger:hover { opacity: 0.75; }
+
+/* ─── Product Shelf (settings panel) ────────────────────────────── */
+.shelf-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.shelf-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #2a2826;
+}
+
+.shelf-item:last-child {
+  border-bottom: none;
+}
+
+.shelf-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.shelf-item-name {
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: #e8ddd0;
+}
+
+.shelf-item-date {
+  font-family: Georgia, serif;
+  font-size: 11px;
+  color: #706560;
+}
+
+.shelf-remove-btn {
+  background: none;
+  border: none;
+  color: #706560;
+  font-size: 18px;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 0 0 8px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.shelf-remove-btn:hover { opacity: 1; }
+
+.shelf-count {
+  font-family: Georgia, serif;
+  font-size: 11px;
+  color: #706560;
+  text-align: right;
+  margin: 4px 0 0;
+}

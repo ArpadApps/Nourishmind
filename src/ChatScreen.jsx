@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './ChatScreen.css'
-import { CHAT_MODEL, SCAN_MODEL, EXTRACTION_MODEL, DAILY_CAP, FREE_SCAN_LIMIT, PRO_SCAN_LIMIT } from './config'
+import { CHAT_MODEL, SCAN_MODEL, EXTRACTION_MODEL, FREE_CHAT_LIMIT, PRO_CHAT_LIMIT, FREE_SCAN_LIMIT, PRO_SCAN_LIMIT } from './config'
 import DailyCardScreen from './components/DailyCardScreen'
 
 // ─── Noor's system prompt ──────────────────────────────────────────────────
@@ -460,12 +460,16 @@ The user sees only your analysis. No validation language, no steps, no word coun
     })
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}))
-      return { valid: false, message: `Something went wrong. (${err.error?.message || response.status})` }
+      await response.json().catch(() => ({}))
+      return { valid: false, message: "Couldn't read that clearly. Try another angle or better lighting." }
     }
 
     const data = await response.json()
     const text = data.content?.[0]?.text?.trim() || ''
+
+    if (!text) {
+      return { valid: false, message: "Couldn't read that clearly. Try another angle or better lighting." }
+    }
 
     if (text.startsWith('INVALID:')) {
       return { valid: false, message: text.replace('INVALID:', '').trim() }
@@ -480,7 +484,8 @@ The user sees only your analysis. No validation language, no steps, no word coun
 
     return { valid: true, productName: 'Unknown product', analysis: text }
   } catch (err) {
-    return { valid: false, message: `Something went wrong. (${err.message})` }
+    console.error('Label scan failed:', err)
+    return { valid: false, message: "Couldn't read that clearly. Try another angle or better lighting." }
   }
 }
 
@@ -666,7 +671,7 @@ function AboutPanel({ onClose }) {
   )
 }
 
-function SettingsPanel({ memory, onClearMemory, onResetAll, onClose }) {
+function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemoveProduct, onClose }) {
   const overlayRef = useRef(null)
   const handleOverlayClick = (e) => { if (e.target === overlayRef.current) onClose() }
 
@@ -678,6 +683,13 @@ function SettingsPanel({ memory, onClearMemory, onResetAll, onClose }) {
     (memory.topics && memory.topics.length > 0) ||
     (memory.notes && memory.notes.length > 0)
   )
+
+  const hasShelf = productShelf && productShelf.length > 0
+
+  function formatDate(iso) {
+    const d = new Date(iso)
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
 
   return (
     <div ref={overlayRef} className="journal-overlay" onClick={handleOverlayClick}>
@@ -698,7 +710,38 @@ function SettingsPanel({ memory, onClearMemory, onResetAll, onClose }) {
           ) : (
             <p className="settings-memory-empty">Noor doesn't know anything about you yet. Start a conversation and she'll learn naturally.</p>
           )}
-          <button className="settings-btn-muted" onClick={() => { onClearMemory(); onClose() }}>Clear Memory</button>
+          {hasMemory && <button className="settings-btn-muted" onClick={() => { onClearMemory(); onClose() }}>Clear Memory</button>}
+        </div>
+
+        <div className="settings-section">
+          <h3 className="settings-section-title">Your Product Shelf</h3>
+          {hasShelf ? (
+            <>
+              <div className="shelf-list">
+                {productShelf.map(p => (
+                  <div key={p.id} className="shelf-item">
+                    <div className="shelf-item-info">
+                      <span className="shelf-item-name">{p.productName}</span>
+                      <span className="shelf-item-date">{formatDate(p.dateScanned)}</span>
+                    </div>
+                    <button
+                      className="shelf-remove-btn"
+                      onClick={() => onRemoveProduct(p.id)}
+                      aria-label={`Remove ${p.productName}`}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+              <p className="shelf-count">{productShelf.length} {productShelf.length === 1 ? 'product' : 'products'}</p>
+            </>
+          ) : !isPro ? (
+            <>
+              <p className="settings-memory-empty">Product Shelf is a Pro feature. Upgrade to keep and review every product you scan.</p>
+              <button className="settings-btn-upgrade">Upgrade to Pro — $7.99/month</button>
+            </>
+          ) : (
+            <p className="settings-memory-empty">Nothing on your shelf yet. Scan a product and tap "Taking it" to save it here.</p>
+          )}
         </div>
 
         <div className="settings-section">
@@ -720,7 +763,6 @@ function SettingsPanel({ memory, onClearMemory, onResetAll, onClose }) {
             <button className="settings-link-btn" onClick={() => window.open('/terms', '_blank')}>Terms of Service</button>
             <button className="settings-link-btn" onClick={() => window.open('/privacy', '_blank')}>Privacy Policy</button>
           </div>
-          <button className="settings-btn-danger" onClick={onResetAll}>Reset All Data</button>
         </div>
       </div>
     </div>
@@ -747,7 +789,8 @@ export default function ChatScreen() {
   const [ready, setReady] = useState(false)
   const [memory, setMemory] = useState(() => loadMemory())
   const [dailyCount, setDailyCount] = useState(() => loadDailyCount())
-  const [_scanCount, setScanCount] = useState(() => loadDailyScanCount())
+  const [scanCount, setScanCount] = useState(() => loadDailyScanCount())
+  const [isPro, setIsPro] = useState(() => localStorage.getItem('noor-pro') === 'true')
   const [productShelf, setProductShelf] = useState(() => loadProductShelf())
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState(null)
@@ -757,6 +800,10 @@ export default function ChatScreen() {
   const [showAbout, setShowAbout] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showDailyCard, setShowDailyCard] = useState(false)
+  const [showRetry, setShowRetry] = useState(false)
+
+  const chatLimit = isPro ? PRO_CHAT_LIMIT : FREE_CHAT_LIMIT
+  const scanLimit = isPro ? PRO_SCAN_LIMIT : FREE_SCAN_LIMIT
 
   const bottomRef = useRef(null)
   const messagesRef = useRef(null)
@@ -768,6 +815,7 @@ export default function ChatScreen() {
 
   const chatContainerRef = useRef(null)
   const headerCameraInputRef = useRef(null)
+  const lastMessageRef = useRef('')
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
   const handleClearMemory = () => {
@@ -780,6 +828,12 @@ export default function ChatScreen() {
      'noor_messages_date', 'noor_messages_count', 'noor_scans_date', 'noor_scans_count'].forEach(k => localStorage.removeItem(k))
     window.location.reload()
   }
+
+  const handleRemoveProduct = useCallback((productId) => {
+    const updated = productShelf.filter(p => p.id !== productId)
+    saveProductShelf(updated)
+    setProductShelf(updated)
+  }, [productShelf])
 
   const scrollToBottom = () => {
     const el = messagesRef.current
@@ -835,8 +889,21 @@ export default function ChatScreen() {
   const sendText = useCallback((text, hiddenContext = null) => {
     if (!text || isStreaming) return
 
+    if (!navigator.onLine) {
+      setMessages(prev => [...prev, {
+        id: `err-offline-${Date.now()}`,
+        from: 'noor',
+        text: "You're offline. Check your connection and try again.",
+        streaming: false,
+        timestamp: new Date().toISOString(),
+      }])
+      return
+    }
+
+    setShowRetry(false)
+
     const currentCount = loadDailyCount()
-    const remaining = Math.max(0, DAILY_CAP - currentCount)
+    const remaining = Math.max(0, chatLimit - currentCount)
     if (remaining === 0) return
 
     const newCount = currentCount + 1
@@ -844,7 +911,7 @@ export default function ChatScreen() {
     setDailyCount(newCount)
 
     const currentMemory = memoryRef.current
-    const newRemaining = Math.max(0, DAILY_CAP - newCount)
+    const newRemaining = Math.max(0, chatLimit - newCount)
     const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf)
     const finalSystemPrompt = hiddenContext
       ? systemPrompt + "\n\n" + hiddenContext
@@ -879,6 +946,8 @@ export default function ChatScreen() {
       setTimeout(() => pulse.remove(), 2500)
     }
 
+    lastMessageRef.current = text
+
     const noorMsgId = `noor-${Date.now()}`
     let noorText = ''
 
@@ -911,8 +980,8 @@ export default function ChatScreen() {
         setIsStreaming(false)
         setTimeout(() => inputRef.current?.focus(), 50)
 
-        // Fire-and-forget: extract and persist any new user info
-        if (!privateMode) {
+        // Fire-and-forget: extract and persist any new user info (Pro only)
+        if (!privateMode && isPro) {
           extractMemoryUpdate(text, noorText, currentMemory, userHistory).then(result => {
             if (!result) return
             if (result.memory) {
@@ -922,29 +991,54 @@ export default function ChatScreen() {
             }
           })
         }
-      },
-      (err) => {
-        setShowTyping(false)
-        setIsStreaming(false)
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `err-${Date.now()}`,
+
+        // Soft wall when free user hits chat limit
+        if (newRemaining === 0 && !isPro) {
+          setMessages(prev => [...prev, {
+            id: `limit-wall-${Date.now()}`,
             from: 'noor',
-            text: `Something went wrong. (${err})`,
+            text: "That's your five for today. There's more I wanted to say. Unlock full conversations with Pro.",
             streaming: false,
             timestamp: new Date().toISOString(),
-          },
-        ])
+          }])
+        }
+      },
+      (_err) => {
+        setShowTyping(false)
+        setIsStreaming(false)
+        setMessages(prev => [...prev, {
+          id: `err-${Date.now()}`,
+          from: 'noor',
+          text: "Lost my train of thought for a moment. Try sending that again.",
+          streaming: false,
+          timestamp: new Date().toISOString(),
+        }])
+        setShowRetry(true)
       }
     )
-  }, [isStreaming, apiHistory, productShelf])
+  }, [isStreaming, apiHistory, productShelf, chatLimit, isPro])
+
+  const handleRetry = useCallback(() => {
+    setShowRetry(false)
+    sendText(lastMessageRef.current)
+  }, [sendText])
 
   const sendTextWithCardContext = useCallback((displayText, apiText) => {
     if (!displayText || isStreaming) return
 
+    if (!navigator.onLine) {
+      setMessages(prev => [...prev, {
+        id: `err-offline-${Date.now()}`,
+        from: 'noor',
+        text: "You're offline. Check your connection and try again.",
+        streaming: false,
+        timestamp: new Date().toISOString(),
+      }])
+      return
+    }
+
     const currentCount = loadDailyCount()
-    const remaining = Math.max(0, DAILY_CAP - currentCount)
+    const remaining = Math.max(0, chatLimit - currentCount)
     if (remaining === 0) return
 
     const newCount = currentCount + 1
@@ -952,7 +1046,7 @@ export default function ChatScreen() {
     setDailyCount(newCount)
 
     const currentMemory = memoryRef.current
-    const newRemaining = Math.max(0, DAILY_CAP - newCount)
+    const newRemaining = Math.max(0, chatLimit - newCount)
     const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf)
     // apiText contains the card context inline — sent to the API, not shown in the UI
     const userHistory = [...apiHistory, { role: 'user', content: apiText }]
@@ -1017,7 +1111,8 @@ export default function ChatScreen() {
         setIsStreaming(false)
         setTimeout(() => inputRef.current?.focus(), 50)
 
-        if (!privateMode) {
+        // Fire-and-forget: extract and persist any new user info (Pro only)
+        if (!privateMode && isPro) {
           extractMemoryUpdate(displayText, noorText, currentMemory, userHistory, true).then(result => {
             if (!result) return
             if (result.memory) {
@@ -1027,23 +1122,31 @@ export default function ChatScreen() {
             }
           })
         }
-      },
-      (err) => {
-        setShowTyping(false)
-        setIsStreaming(false)
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `err-${Date.now()}`,
+
+        // Soft wall when free user hits chat limit
+        if (newRemaining === 0 && !isPro) {
+          setMessages(prev => [...prev, {
+            id: `limit-wall-${Date.now()}`,
             from: 'noor',
-            text: `Something went wrong. (${err})`,
+            text: "That's your five for today. There's more I wanted to say. Unlock full conversations with Pro.",
             streaming: false,
             timestamp: new Date().toISOString(),
-          },
-        ])
+          }])
+        }
+      },
+      (_err) => {
+        setShowTyping(false)
+        setIsStreaming(false)
+        setMessages(prev => [...prev, {
+          id: `err-${Date.now()}`,
+          from: 'noor',
+          text: "Lost my train of thought for a moment. Try sending that again.",
+          streaming: false,
+          timestamp: new Date().toISOString(),
+        }])
       }
     )
-  }, [isStreaming, apiHistory, productShelf])
+  }, [isStreaming, apiHistory, productShelf, chatLimit, isPro])
 
   const sendMessage = useCallback(() => {
     const text = input.trim()
@@ -1095,7 +1198,7 @@ export default function ChatScreen() {
     }])
   }, [scanResult])
 
-  const remaining = Math.max(0, DAILY_CAP - dailyCount)
+  const remaining = Math.max(0, chatLimit - dailyCount)
   const atLimit = remaining === 0
 
   return (
@@ -1108,7 +1211,16 @@ export default function ChatScreen() {
             <NoorAvatar size="header" />
           </button>
           <div className="chat-header-info">
-            <span className="chat-header-name">Noor</span>
+            <span className="chat-header-name">
+              Noor
+              <span
+                className="plan-badge"
+                style={isPro
+                  ? { background: '#c8a97e', color: '#0e0d0c', border: 'none' }
+                  : { background: 'transparent', color: '#706560', border: '1px solid #706560' }
+                }
+              >{isPro ? 'Pro' : 'Free'}</span>
+            </span>
             <span className="chat-header-status">
               <span className={`status-dot${isStreaming ? ' status-dot--typing' : atLimit ? ' status-dot--limit' : ''}`} />
               Your NourishMind companion
@@ -1180,6 +1292,17 @@ export default function ChatScreen() {
               const file = e.target.files?.[0]
               if (!file) return
               e.target.value = ''
+
+              if (!navigator.onLine) {
+                setMessages(prev => [...prev, {
+                  id: `err-offline-${Date.now()}`,
+                  from: 'noor',
+                  text: "You're offline. Check your connection and try again.",
+                  streaming: false,
+                  timestamp: new Date().toISOString(),
+                }])
+                return
+              }
 
               const currentScanCount = loadDailyScanCount()
               if (currentScanCount >= FREE_SCAN_LIMIT) {
@@ -1309,6 +1432,11 @@ export default function ChatScreen() {
           {scanResult && !isScanning && (
             <ScanButtons onKeep={handleKeepProduct} onLeave={handleLeaveProduct} />
           )}
+          {showRetry && (
+            <div className="retry-wrap">
+              <button className="retry-btn" onClick={handleRetry}>Try again</button>
+            </div>
+          )}
           {showTyping && <TypingIndicator />}
           <div ref={bottomRef} />
         </main>
@@ -1318,22 +1446,85 @@ export default function ChatScreen() {
       {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
 
       {/* ── Settings Panel ── */}
-      {showSettings && <SettingsPanel memory={memory} onClearMemory={handleClearMemory} onResetAll={handleResetAll} onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsPanel memory={memory} onClearMemory={handleClearMemory} onResetAll={handleResetAll} isPro={isPro} productShelf={productShelf} onRemoveProduct={handleRemoveProduct} onClose={() => setShowSettings(false)} />}
 
       {/* ── Daily Card Screen ── */}
       {showDailyCard && (
-        <DailyCardScreen
-          onClose={() => setShowDailyCard(false)}
-          onOpenChat={(card) => {
-            setShowDailyCard(false);
-            setTimeout(() => {
-              // Build a message that contains context for the API but we only show the short part in the UI
-              const fullMessage = `[DAILY CARD DISCUSSION — The user just read today's Daily Card. Category: ${card.category}. Tag: "${card.tag}". The card said: "${card.insight}". They tapped it to discuss. Respond naturally about the topic as an interesting idea worth exploring. Do not quote the card back to them. Do not say "I see you read the card." CRITICAL: The user read about this topic on a card. That does NOT mean they practice it, believe it, or have experience with it. Do not assume they already do this. Do not say "great that you do this" or "since you already know about this." Treat it as a topic they are curious about, nothing more, unless they explicitly tell you otherwise in their own words.]\n\n${card.tag || "Thoughts on this?"}`;
-              const visibleMessage = card.tag || "Thoughts on this?";
-              sendTextWithCardContext(visibleMessage, fullMessage);
-            }, 1450);
-          }}
-        />
+        isPro ? (
+          <DailyCardScreen
+            onClose={() => setShowDailyCard(false)}
+            onOpenChat={(card) => {
+              setShowDailyCard(false);
+              setTimeout(() => {
+                // Build a message that contains context for the API but we only show the short part in the UI
+                const fullMessage = `[DAILY CARD DISCUSSION — The user just read today's Daily Card. Category: ${card.category}. Tag: "${card.tag}". The card said: "${card.insight}". They tapped it to discuss. Respond naturally about the topic as an interesting idea worth exploring. Do not quote the card back to them. Do not say "I see you read the card." CRITICAL: The user read about this topic on a card. That does NOT mean they practice it, believe it, or have experience with it. Do not assume they already do this. Do not say "great that you do this" or "since you already know about this." Treat it as a topic they are curious about, nothing more, unless they explicitly tell you otherwise in their own words.]\n\n${card.tag || "Thoughts on this?"}`;
+                const visibleMessage = card.tag || "Thoughts on this?";
+                sendTextWithCardContext(visibleMessage, fullMessage);
+              }, 1450);
+            }}
+          />
+        ) : (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: '#0e0d0c',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            fontFamily: 'Georgia, serif',
+          }}>
+            <button
+              onClick={() => setShowDailyCard(false)}
+              style={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                background: 'none',
+                border: 'none',
+                color: '#706560',
+                fontSize: 28,
+                cursor: 'pointer',
+                padding: '4px 8px',
+                lineHeight: 1,
+              }}
+              aria-label="Close"
+            >×</button>
+
+            <div style={{
+              fontSize: 11,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: '#c8a97e',
+              marginBottom: 20,
+            }}>Daily Cards</div>
+
+            <div style={{
+              color: '#e8ddd0',
+              fontSize: 18,
+              fontStyle: 'italic',
+              lineHeight: 1.7,
+              textAlign: 'center',
+              maxWidth: 300,
+              marginBottom: 32,
+            }}>One insight a day from Noor. A small piece of knowledge that shifts how you see food.</div>
+
+            <button style={{
+              background: 'none',
+              border: '1px solid #c8a97e',
+              borderRadius: 8,
+              color: '#c8a97e',
+              fontSize: 14,
+              letterSpacing: '0.06em',
+              padding: '12px 32px',
+              fontFamily: 'Georgia, serif',
+              cursor: 'pointer',
+              minHeight: 44,
+            }}>Upgrade to Pro</button>
+          </div>
+        )
       )}
 
       {/* ── Input ── */}
