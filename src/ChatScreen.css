@@ -183,6 +183,8 @@
 .about-panel {
   gap: 0;
   padding-bottom: 48px;
+  overflow-y: auto;
+  max-height: 85vh;
 }
 
 .about-header {
