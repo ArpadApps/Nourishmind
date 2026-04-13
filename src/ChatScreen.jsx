@@ -687,8 +687,6 @@ export default function ChatScreen() {
   const [memory, setMemory] = useState(() => loadMemory())
   const [dailyCount, setDailyCount] = useState(() => loadDailyCount())
   const [_scanCount, setScanCount] = useState(() => loadDailyScanCount())
-  // TEMP: reset scan count on load for testing — remove before deploy
-  useEffect(() => { saveDailyScanCount(0); setScanCount(0) }, [])
   const [productShelf, setProductShelf] = useState(() => loadProductShelf())
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState(null)
@@ -867,7 +865,7 @@ export default function ChatScreen() {
         ])
       }
     )
-  }, [isStreaming, apiHistory])
+  }, [isStreaming, apiHistory, productShelf])
 
   const sendTextWithCardContext = useCallback((displayText, apiText) => {
     if (!displayText || isStreaming) return
@@ -972,7 +970,7 @@ export default function ChatScreen() {
         ])
       }
     )
-  }, [isStreaming, apiHistory])
+  }, [isStreaming, apiHistory, productShelf])
 
   const sendMessage = useCallback(() => {
     const text = input.trim()

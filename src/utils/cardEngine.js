@@ -6,6 +6,18 @@ import ONBOARDING_CARDS from "../data/onboardingCards";
 const STORAGE_KEY = "noor-daily-cards";
 const INSTALL_KEY = "noor-install-date";
 
+// ─── API routing (same pattern as ChatScreen) ───
+const isLocal = window.location.hostname === "localhost";
+const API_URL = isLocal ? "https://api.anthropic.com/v1/messages" : "/api/chat";
+const API_HEADERS = {
+  "Content-Type": "application/json",
+  ...(isLocal && {
+    "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
+    "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
+  }),
+};
+
 // ─── Day calculation ───
 function getInstallDate() {
   let date = localStorage.getItem(INSTALL_KEY);
@@ -144,9 +156,9 @@ ${recent || "None yet."}
 Last two categories used: ${recentCategories.join(", ") || "none"}`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: API_HEADERS,
       body: JSON.stringify({
         model: CARD_MODEL,
         max_tokens: 300,
