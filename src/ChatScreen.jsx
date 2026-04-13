@@ -812,6 +812,15 @@ export default function ChatScreen() {
   const memoryRef = useRef(memory)
   useEffect(() => { memoryRef.current = memory }, [memory])
 
+  useEffect(() => {
+    if (showAbout || showSettings || showDailyCard) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [showAbout, showSettings, showDailyCard])
+
 
   const chatContainerRef = useRef(null)
   const headerCameraInputRef = useRef(null)

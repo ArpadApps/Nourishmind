@@ -7,6 +7,8 @@
   align-items: center;
   justify-content: center;
   padding: 48px 24px 40px;
+  padding-top: max(48px, calc(48px + env(safe-area-inset-top)));
+  padding-bottom: max(40px, calc(40px + env(safe-area-inset-bottom)));
   background: #0e0d0c;
 }
 

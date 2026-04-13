@@ -1,4 +1,8 @@
-*, *::before, *::after { box-sizing: border-box; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
 
 :root {
   --bg:           #0e0d0c;
@@ -20,7 +24,10 @@
   text-rendering: optimizeLegibility;
 }
 
-body { margin: 0; }
+body {
+  margin: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
 
 #root {
   width: 100%;
