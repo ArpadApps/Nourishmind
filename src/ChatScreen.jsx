@@ -666,6 +666,67 @@ function AboutPanel({ onClose }) {
   )
 }
 
+function SettingsPanel({ memory, onClearMemory, onResetAll, onClose }) {
+  const overlayRef = useRef(null)
+  const handleOverlayClick = (e) => { if (e.target === overlayRef.current) onClose() }
+
+  const hasMemory = memory && (
+    memory.name ||
+    memory.location ||
+    (memory.habits && memory.habits.length > 0) ||
+    (memory.allergies && memory.allergies.length > 0) ||
+    (memory.topics && memory.topics.length > 0) ||
+    (memory.notes && memory.notes.length > 0)
+  )
+
+  return (
+    <div ref={overlayRef} className="journal-overlay" onClick={handleOverlayClick}>
+      <div className="journal-panel settings-panel">
+        <div className="journal-handle" />
+
+        <div className="settings-section">
+          <h3 className="settings-section-title">What Noor Remembers</h3>
+          {hasMemory ? (
+            <div className="settings-memory-fields">
+              {memory.name && <p className="settings-memory-line">Name: {memory.name}</p>}
+              {memory.location && <p className="settings-memory-line">Location: {memory.location}</p>}
+              {memory.habits && memory.habits.length > 0 && <p className="settings-memory-line">Habits: {memory.habits.join(', ')}</p>}
+              {memory.allergies && memory.allergies.length > 0 && <p className="settings-memory-line">Allergies: {memory.allergies.join(', ')}</p>}
+              {memory.topics && memory.topics.length > 0 && <p className="settings-memory-line">Topics: {memory.topics.join(', ')}</p>}
+              {memory.notes && memory.notes.length > 0 && <p className="settings-memory-line">Notes: {memory.notes.join(', ')}</p>}
+            </div>
+          ) : (
+            <p className="settings-memory-empty">Noor doesn't know anything about you yet. Start a conversation and she'll learn naturally.</p>
+          )}
+          <button className="settings-btn-muted" onClick={() => { onClearMemory(); onClose() }}>Clear Memory</button>
+        </div>
+
+        <div className="settings-section">
+          <h3 className="settings-section-title">Subscription</h3>
+          <p className="settings-muted-text">Current plan: Free</p>
+          <button className="settings-btn-upgrade">Upgrade to Pro — $7.99/month</button>
+        </div>
+
+        <div className="settings-section">
+          <h3 className="settings-section-title">About NourishMind</h3>
+          <p className="settings-about-text">NourishMind helps you understand what's really in your food. Powered by Noor, your AI nutrition companion.</p>
+          <p className="settings-version">Version 1.0.0</p>
+        </div>
+
+        <div className="settings-section settings-section--last">
+          <h3 className="settings-section-title">Legal</h3>
+          <div className="settings-links">
+            {/* TODO: wire to in-app navigation when setScreen is available from App.jsx */}
+            <button className="settings-link-btn" onClick={() => window.open('/terms', '_blank')}>Terms of Service</button>
+            <button className="settings-link-btn" onClick={() => window.open('/privacy', '_blank')}>Privacy Policy</button>
+          </div>
+          <button className="settings-btn-danger" onClick={onResetAll}>Reset All Data</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ScanButtons({ onKeep, onLeave }) {
   return (
     <div className="scan-buttons">
@@ -694,6 +755,7 @@ export default function ChatScreen() {
   const [privateMode, setPrivateMode] = useState(false)
   const [showMemoryLabel, setShowMemoryLabel] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [showDailyCard, setShowDailyCard] = useState(false)
 
   const bottomRef = useRef(null)
@@ -707,6 +769,17 @@ export default function ChatScreen() {
   const chatContainerRef = useRef(null)
   const headerCameraInputRef = useRef(null)
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
+
+  const handleClearMemory = () => {
+    localStorage.removeItem(MEMORY_KEY)
+    setMemory(null)
+  }
+
+  const handleResetAll = () => {
+    ['noor-memory', 'noor-chat-history', 'noor-product-shelf', 'noor-daily-cards', 'noor-install-date',
+     'noor_messages_date', 'noor_messages_count', 'noor_scans_date', 'noor_scans_count'].forEach(k => localStorage.removeItem(k))
+    window.location.reload()
+  }
 
   const scrollToBottom = () => {
     const el = messagesRef.current
@@ -1094,7 +1167,7 @@ export default function ChatScreen() {
           </div>
         </div>
         <div className="chat-header-centre">
-          <img src="/NM-icon.png" alt="NourishMind" className="chat-nm-logo" />
+          <img src="/NM-icon.png" alt="NourishMind" className="chat-nm-logo" onClick={() => setShowSettings(true)} />
         </div>
         <div className="chat-header-right">
           <input
@@ -1243,6 +1316,9 @@ export default function ChatScreen() {
 
       {/* ── About Panel ── */}
       {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
+
+      {/* ── Settings Panel ── */}
+      {showSettings && <SettingsPanel memory={memory} onClearMemory={handleClearMemory} onResetAll={handleResetAll} onClose={() => setShowSettings(false)} />}
 
       {/* ── Daily Card Screen ── */}
       {showDailyCard && (
