@@ -167,7 +167,7 @@ function loadChatHistory() {
 
 function saveChatHistory(apiHistory) {
   try {
-    const trimmed = apiHistory.slice(-CHAT_HISTORY_MAX)
+    const trimmed = apiHistory.filter(m => m.content && m.content.trim()).slice(-CHAT_HISTORY_MAX)
     localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(trimmed))
   } catch {}
 }
@@ -801,6 +801,7 @@ export default function ChatScreen() {
   const [showSettings, setShowSettings] = useState(false)
   const [showDailyCard, setShowDailyCard] = useState(false)
   const [showRetry, setShowRetry] = useState(false)
+  const [isListening, setIsListening] = useState(false)
 
   const chatLimit = isPro ? PRO_CHAT_LIMIT : FREE_CHAT_LIMIT
   const scanLimit = isPro ? PRO_SCAN_LIMIT : FREE_SCAN_LIMIT
@@ -825,6 +826,7 @@ export default function ChatScreen() {
   const chatContainerRef = useRef(null)
   const headerCameraInputRef = useRef(null)
   const lastMessageRef = useRef('')
+  const recognitionRef = useRef(null)
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
   const handleClearMemory = () => {
@@ -861,7 +863,8 @@ export default function ChatScreen() {
 
     const stored = loadChatHistory()
     if (stored && stored.length > 0) {
-      const restoredMessages = stored
+      const cleaned = stored.filter(m => m.content && m.content.trim())
+      const restoredMessages = cleaned
         .filter(m => !(m.role === 'user' && m.content.startsWith('I scanned a product label')))
         .map((m, i) => ({
           id: `restored-${i}`,
@@ -870,7 +873,7 @@ export default function ChatScreen() {
           streaming: false,
         }))
       setMessages(restoredMessages)
-      setApiHistory(stored)
+      setApiHistory(cleaned)
       setReady(true)
       setTimeout(() => inputRef.current?.focus(), 100)
       return
@@ -982,6 +985,19 @@ export default function ChatScreen() {
         })
       },
       () => {
+        if (!noorText.trim()) {
+          setMessages(prev => prev.filter(m => m.id !== noorMsgId))
+          setMessages(prev => [...prev, {
+            id: `err-${Date.now()}`,
+            from: 'noor',
+            text: "Lost my train of thought for a moment. Try sending that again.",
+            streaming: false,
+            timestamp: new Date().toISOString(),
+          }])
+          setIsStreaming(false)
+          setShowRetry(true)
+          return
+        }
         setMessages(prev =>
           prev.map(m => m.id === noorMsgId ? { ...m, streaming: false } : m)
         )
@@ -1113,6 +1129,19 @@ export default function ChatScreen() {
         })
       },
       () => {
+        if (!noorText.trim()) {
+          setMessages(prev => prev.filter(m => m.id !== noorMsgId))
+          setMessages(prev => [...prev, {
+            id: `err-${Date.now()}`,
+            from: 'noor',
+            text: "Lost my train of thought for a moment. Try sending that again.",
+            streaming: false,
+            timestamp: new Date().toISOString(),
+          }])
+          setIsStreaming(false)
+          setShowRetry(true)
+          return
+        }
         setMessages(prev =>
           prev.map(m => m.id === noorMsgId ? { ...m, streaming: false } : m)
         )
@@ -1209,6 +1238,38 @@ export default function ChatScreen() {
     }])
   }, [scanResult])
 
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
+  const speechSupported = !!SpeechRecognitionAPI
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+    const recognition = new SpeechRecognitionAPI()
+    recognition.interimResults = true
+    recognition.continuous = false
+    recognition.onresult = (e) => {
+      const result = e.results[e.results.length - 1]
+      const transcript = result[0].transcript
+      setInput(transcript)
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto'
+        inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
+      }
+    }
+    recognition.onend = () => { setIsListening(false) }
+    recognition.onerror = (e) => { console.error('Speech recognition error', e.error); setIsListening(false) }
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+  }
+
+  useEffect(() => {
+    return () => { recognitionRef.current?.stop() }
+  }, [])
+
   const remaining = Math.max(0, chatLimit - dailyCount)
   const atLimit = remaining === 0
 
@@ -1282,7 +1343,7 @@ export default function ChatScreen() {
             </button>
             {showMemoryLabel && (
               <div className="memory-label">
-                {!isPro ? "Memory is a Pro feature" : privateMode ? "Doesn't remember" : "Remembers you"}
+                {!isPro ? "Pro lets Noor remember you" : privateMode ? "Doesn't remember" : "Remembers you"}
               </div>
             )}
             {window.location.hostname === 'localhost' && showMemoryLabel && (
@@ -1578,14 +1639,30 @@ export default function ChatScreen() {
             rows={1}
             aria-label="Message Noor"
           />
-          <button
-            className="chat-send"
-            onClick={sendMessage}
-            disabled={!input.trim() || isStreaming || !ready || atLimit}
-            aria-label="Send message"
-          >
-            <SendIcon />
-          </button>
+          {speechSupported && !input.trim() && !isStreaming && !atLimit && (
+            <button
+              className={`chat-mic-btn${isListening ? ' chat-mic-btn--active' : ''}`}
+              onClick={toggleListening}
+              aria-label={isListening ? 'Stop listening' : 'Speak message'}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="1" width="6" height="12" rx="3" />
+                <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            </button>
+          )}
+          {(!speechSupported || input.trim() || isStreaming || atLimit) && (
+            <button
+              className="chat-send"
+              onClick={sendMessage}
+              disabled={!input.trim() || isStreaming || !ready || atLimit}
+              aria-label="Send message"
+            >
+              <SendIcon />
+            </button>
+          )}
         </div>
         {atLimit ? (
           <p className="chat-limit-msg">You have reached today's limit. Noor will be back tomorrow.</p>
