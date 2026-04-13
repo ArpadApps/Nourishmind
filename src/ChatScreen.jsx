@@ -1297,6 +1297,23 @@ export default function ChatScreen() {
                 Reset
               </button>
             )}
+            {window.location.hostname === 'localhost' && (
+              <button
+                className="memory-reset-btn"
+                onClick={() => {
+                  const newPro = !isPro
+                  if (newPro) {
+                    localStorage.setItem('noor-pro', 'true')
+                  } else {
+                    localStorage.removeItem('noor-pro')
+                  }
+                  setIsPro(newPro)
+                }}
+                style={{ top: 'calc(100% + 54px)' }}
+              >
+                {isPro ? '⬇ Switch to Free' : '⬆ Switch to Pro'}
+              </button>
+            )}
           </div>
           <input
             ref={headerCameraInputRef}
