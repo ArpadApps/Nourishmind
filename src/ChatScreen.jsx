@@ -861,12 +861,14 @@ export default function ChatScreen() {
 
     const stored = loadChatHistory()
     if (stored && stored.length > 0) {
-      const restoredMessages = stored.map((m, i) => ({
-        id: `restored-${i}`,
-        from: m.role === 'user' ? 'user' : 'noor',
-        text: m.content,
-        streaming: false,
-      }))
+      const restoredMessages = stored
+        .filter(m => !(m.role === 'user' && m.content.startsWith('I scanned a product label')))
+        .map((m, i) => ({
+          id: `restored-${i}`,
+          from: m.role === 'user' ? 'user' : 'noor',
+          text: m.content,
+          streaming: false,
+        }))
       setMessages(restoredMessages)
       setApiHistory(stored)
       setReady(true)
@@ -1235,10 +1237,20 @@ export default function ChatScreen() {
               Your NourishMind companion
             </span>
           </div>
+        </div>
+        <div className="chat-header-centre">
+          <img src="/NM-icon.png" alt="NourishMind" className="chat-nm-logo" onClick={() => setShowSettings(true)} />
+        </div>
+        <div className="chat-header-right">
           <div className="memory-toggle-wrap">
             <button
               className="memory-eye-btn"
               onClick={() => {
+                if (!isPro) {
+                  setShowMemoryLabel(true)
+                  setTimeout(() => setShowMemoryLabel(false), 2000)
+                  return
+                }
                 const goingPrivate = !privateMode
                 setPrivateMode(goingPrivate)
                 setShowMemoryLabel(true)
@@ -1270,7 +1282,7 @@ export default function ChatScreen() {
             </button>
             {showMemoryLabel && (
               <div className="memory-label">
-                {privateMode ? "Doesn't remember" : "Remembers you"}
+                {!isPro ? "Memory is a Pro feature" : privateMode ? "Doesn't remember" : "Remembers you"}
               </div>
             )}
             {window.location.hostname === 'localhost' && showMemoryLabel && (
@@ -1286,11 +1298,6 @@ export default function ChatScreen() {
               </button>
             )}
           </div>
-        </div>
-        <div className="chat-header-centre">
-          <img src="/NM-icon.png" alt="NourishMind" className="chat-nm-logo" onClick={() => setShowSettings(true)} />
-        </div>
-        <div className="chat-header-right">
           <input
             ref={headerCameraInputRef}
             type="file"
