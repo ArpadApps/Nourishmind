@@ -802,6 +802,9 @@ export default function ChatScreen() {
   const [showDailyCard, setShowDailyCard] = useState(false)
   const [showRetry, setShowRetry] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [showMicHint, setShowMicHint] = useState(() => {
+    return !localStorage.getItem('noor-mic-hint-seen')
+  })
 
   const chatLimit = isPro ? PRO_CHAT_LIMIT : FREE_CHAT_LIMIT
   const scanLimit = isPro ? PRO_SCAN_LIMIT : FREE_SCAN_LIMIT
@@ -1280,6 +1283,15 @@ export default function ChatScreen() {
     return () => { recognitionRef.current?.stop() }
   }, [])
 
+  useEffect(() => {
+    if (!showMicHint) return
+    const timer = setTimeout(() => {
+      setShowMicHint(false)
+      localStorage.setItem('noor-mic-hint-seen', 'true')
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [showMicHint])
+
   const remaining = Math.max(0, chatLimit - dailyCount)
   const atLimit = remaining === 0
 
@@ -1634,7 +1646,7 @@ export default function ChatScreen() {
               <circle cx="12" cy="13.5" r="3.5" stroke="currentColor" strokeWidth="1.6" />
             </svg>
           </button>
-          <div className="chat-input-wrap">
+          <div className={`chat-input-wrap${isListening ? ' chat-input-wrap--recording' : ''}`}>
             <textarea
               ref={inputRef}
               className="chat-input"
@@ -1645,28 +1657,33 @@ export default function ChatScreen() {
                 e.target.style.height = `${e.target.scrollHeight}px`
               }}
               onKeyDown={handleKeyDown}
-              placeholder={atLimit ? '' : ready ? 'Talk to Noor…' : ''}
+              placeholder={isListening ? 'Listening…' : atLimit ? '' : ready ? 'Talk to Noor…' : ''}
               disabled={!ready || isStreaming || atLimit}
               rows={1}
               aria-label="Message Noor"
             />
             {speechSupported && !input.trim() && !isStreaming && !atLimit ? (
-              <button
-                className={`chat-mic-btn${isListening ? ' chat-mic-btn--active' : ''}`}
-                onMouseDown={startListening}
-                onMouseUp={stopListening}
-                onMouseLeave={stopListening}
-                onTouchStart={(e) => { e.preventDefault(); startListening(); }}
-                onTouchEnd={(e) => { e.preventDefault(); stopListening(); }}
-                aria-label={isListening ? 'Recording — release to stop' : 'Hold to speak'}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="1" width="6" height="12" rx="3" />
-                  <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
-                  <line x1="12" y1="19" x2="12" y2="23" />
-                  <line x1="8" y1="23" x2="16" y2="23" />
-                </svg>
-              </button>
+              <div className="mic-btn-wrap">
+                {showMicHint && (
+                  <div className="mic-hint">Hold to speak</div>
+                )}
+                <button
+                  className={`chat-mic-btn${isListening ? ' chat-mic-btn--active' : ''}`}
+                  onMouseDown={() => { startListening(); setShowMicHint(false); localStorage.setItem('noor-mic-hint-seen', 'true'); }}
+                  onMouseUp={stopListening}
+                  onMouseLeave={stopListening}
+                  onTouchStart={(e) => { e.preventDefault(); startListening(); setShowMicHint(false); localStorage.setItem('noor-mic-hint-seen', 'true'); }}
+                  onTouchEnd={(e) => { e.preventDefault(); stopListening(); }}
+                  aria-label={isListening ? 'Recording — release to stop' : 'Hold to speak'}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="1" width="6" height="12" rx="3" />
+                    <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                </button>
+              </div>
             ) : (
               <button
                 className="chat-send"
