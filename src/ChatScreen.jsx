@@ -1241,29 +1241,39 @@ export default function ChatScreen() {
   const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
   const speechSupported = !!SpeechRecognitionAPI
 
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop()
-      setIsListening(false)
-      return
-    }
-    const recognition = new SpeechRecognitionAPI()
-    recognition.interimResults = true
-    recognition.continuous = false
-    recognition.onresult = (e) => {
-      const result = e.results[e.results.length - 1]
-      const transcript = result[0].transcript
-      setInput(transcript)
-      if (inputRef.current) {
-        inputRef.current.style.height = 'auto'
-        inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
+  const startListening = () => {
+    if (isListening || isStreaming || atLimit) return
+    try {
+      const recognition = new SpeechRecognitionAPI()
+      recognition.interimResults = true
+      recognition.continuous = true
+      recognition.lang = navigator.language || 'en-US'
+      recognition.onresult = (e) => {
+        let transcript = ''
+        for (let i = 0; i < e.results.length; i++) {
+          transcript += e.results[i][0].transcript
+        }
+        setInput(transcript)
+        if (inputRef.current) {
+          inputRef.current.style.height = 'auto'
+          inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
+        }
       }
+      recognition.onend = () => { setIsListening(false) }
+      recognition.onerror = () => { setIsListening(false) }
+      recognitionRef.current = recognition
+      recognition.start()
+      setIsListening(true)
+    } catch {
+      setIsListening(false)
     }
-    recognition.onend = () => { setIsListening(false) }
-    recognition.onerror = (e) => { console.error('Speech recognition error', e.error); setIsListening(false) }
-    recognitionRef.current = recognition
-    recognition.start()
-    setIsListening(true)
+  }
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+    }
+    setIsListening(false)
   }
 
   useEffect(() => {
@@ -1643,8 +1653,12 @@ export default function ChatScreen() {
             {speechSupported && !input.trim() && !isStreaming && !atLimit ? (
               <button
                 className={`chat-mic-btn${isListening ? ' chat-mic-btn--active' : ''}`}
-                onClick={toggleListening}
-                aria-label={isListening ? 'Stop listening' : 'Speak message'}
+                onMouseDown={startListening}
+                onMouseUp={stopListening}
+                onMouseLeave={stopListening}
+                onTouchStart={(e) => { e.preventDefault(); startListening(); }}
+                onTouchEnd={(e) => { e.preventDefault(); stopListening(); }}
+                aria-label={isListening ? 'Recording — release to stop' : 'Hold to speak'}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="9" y="1" width="6" height="12" rx="3" />
