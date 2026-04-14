@@ -1376,114 +1376,6 @@ export default function ChatScreen() {
               </button>
             )}
           </div>
-          <input
-            ref={headerCameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: 'none' }}
-            onChange={async (e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-              e.target.value = ''
-
-              if (!navigator.onLine) {
-                setMessages(prev => [...prev, {
-                  id: `err-offline-${Date.now()}`,
-                  from: 'noor',
-                  text: "You're offline. Check your connection and try again.",
-                  streaming: false,
-                  timestamp: new Date().toISOString(),
-                }])
-                return
-              }
-
-              const currentScanCount = loadDailyScanCount()
-              if (currentScanCount >= FREE_SCAN_LIMIT) {
-                setMessages(prev => [...prev, {
-                  id: `noor-scan-${Date.now()}`,
-                  from: 'noor',
-                  text: `You've reached your daily scan limit. Scans reset tomorrow morning.`,
-                  streaming: false,
-                  timestamp: new Date().toISOString(),
-                }])
-                return
-              }
-
-              setIsScanning(true)
-              setShowTyping(true)
-              setMessages(prev => [...prev, {
-                id: `scan-indicator-${Date.now()}`,
-                from: 'noor',
-                text: '\u{1F4F7} Label scanned',
-                streaming: false,
-                timestamp: new Date().toISOString(),
-              }])
-
-              const { base64, mimeType } = await compressImage(file)
-              const currentMemory = privateMode ? null : memoryRef.current
-              const shelf = loadProductShelf()
-
-              const result = await analyseLabelImage(base64, mimeType, currentMemory, shelf)
-
-              if (!result.valid) {
-                setIsScanning(false)
-                setShowTyping(false)
-                setMessages(prev => {
-                  const filtered = prev
-                  return [...filtered, {
-                    id: `noor-scan-${Date.now()}`,
-                    from: 'noor',
-                    text: result.message,
-                    streaming: false,
-                    timestamp: new Date().toISOString(),
-                  }]
-                })
-                return
-              }
-
-              const newScanCount = currentScanCount + 1
-              saveDailyScanCount(newScanCount)
-              setScanCount(newScanCount)
-
-              setIsScanning(false)
-              setShowTyping(false)
-              const previousScan = loadScanHistory().find(s => s.productName.toLowerCase() === result.productName.toLowerCase())
-              if (previousScan) {
-                setIsScanning(false)
-                setShowTyping(false)
-                setMessages(prev => [...prev, {
-                  id: `noor-rescan-${Date.now()}`,
-                  from: 'noor',
-                  text: `You have scanned ${result.productName} before. Want a fresh analysis or is there something specific you want to know about it?`,
-                  streaming: false,
-                  timestamp: new Date().toISOString(),
-                }])
-                return
-              }
-              saveScanHistoryEntry(result.productName)
-              setScanResult(result)
-              setMessages(prev => {
-                const filtered = prev
-                return [...filtered, {
-                  id: `noor-scan-${Date.now()}`,
-                  from: 'noor',
-                  text: result.analysis,
-                  streaming: false,
-                  timestamp: new Date().toISOString(),
-                }]
-              })
-              setApiHistory(prev => {
-                const updated = [
-                  ...prev,
-                  { role: 'user', content: `I scanned a product label. Here is what I scanned: ${result.productName || 'a food product label'}` },
-                  { role: 'assistant', content: result.analysis },
-                ]
-                saveChatHistory(updated)
-                return updated
-              })
-            }}
-          />
           <button
             className="chat-camera-btn"
             onClick={() => setShowDailyCard(true)}
@@ -1492,20 +1384,6 @@ export default function ChatScreen() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <rect x="4" y="7" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.6"/>
               <rect x="6" y="5" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.6"/>
-            </svg>
-          </button>
-          <button
-            className="chat-camera-btn"
-            onClick={handleHeaderCameraClick}
-            disabled={isScanning}
-            aria-label="Open camera or choose image"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M8 7L9.5 5H14.5L16 7H19C20.1 7 21 7.9 21 9V18C21 19.1 20.1 20 19 20H5C3.9 20 3 19.1 3 18V9C3 7.9 3.9 7 5 7H8Z"
-                stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
-              />
-              <circle cx="12" cy="13.5" r="3.5" stroke="currentColor" strokeWidth="1.6" />
             </svg>
           </button>
         </div>
@@ -1623,46 +1501,169 @@ export default function ChatScreen() {
 
       {/* ── Input ── */}
       <footer className="chat-footer">
-        <div className="chat-input-wrap">
-          <textarea
-            ref={inputRef}
-            className="chat-input"
-            value={input}
-            onChange={e => {
-              setInput(e.target.value)
-              e.target.style.height = 'auto'
-              e.target.style.height = `${e.target.scrollHeight}px`
+        <div className="chat-input-row">
+          <input
+            ref={headerCameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              e.target.value = ''
+
+              if (!navigator.onLine) {
+                setMessages(prev => [...prev, {
+                  id: `err-offline-${Date.now()}`,
+                  from: 'noor',
+                  text: "You're offline. Check your connection and try again.",
+                  streaming: false,
+                  timestamp: new Date().toISOString(),
+                }])
+                return
+              }
+
+              const currentScanCount = loadDailyScanCount()
+              if (currentScanCount >= FREE_SCAN_LIMIT) {
+                setMessages(prev => [...prev, {
+                  id: `noor-scan-${Date.now()}`,
+                  from: 'noor',
+                  text: `You've reached your daily scan limit. Scans reset tomorrow morning.`,
+                  streaming: false,
+                  timestamp: new Date().toISOString(),
+                }])
+                return
+              }
+
+              setIsScanning(true)
+              setShowTyping(true)
+              setMessages(prev => [...prev, {
+                id: `scan-indicator-${Date.now()}`,
+                from: 'noor',
+                text: '\u{1F4F7} Label scanned',
+                streaming: false,
+                timestamp: new Date().toISOString(),
+              }])
+
+              const { base64, mimeType } = await compressImage(file)
+              const currentMemory = privateMode ? null : memoryRef.current
+              const shelf = loadProductShelf()
+
+              const result = await analyseLabelImage(base64, mimeType, currentMemory, shelf)
+
+              if (!result.valid) {
+                setIsScanning(false)
+                setShowTyping(false)
+                setMessages(prev => {
+                  const filtered = prev
+                  return [...filtered, {
+                    id: `noor-scan-${Date.now()}`,
+                    from: 'noor',
+                    text: result.message,
+                    streaming: false,
+                    timestamp: new Date().toISOString(),
+                  }]
+                })
+                return
+              }
+
+              const newScanCount = currentScanCount + 1
+              saveDailyScanCount(newScanCount)
+              setScanCount(newScanCount)
+
+              setIsScanning(false)
+              setShowTyping(false)
+              const previousScan = loadScanHistory().find(s => s.productName.toLowerCase() === result.productName.toLowerCase())
+              if (previousScan) {
+                setIsScanning(false)
+                setShowTyping(false)
+                setMessages(prev => [...prev, {
+                  id: `noor-rescan-${Date.now()}`,
+                  from: 'noor',
+                  text: `You have scanned ${result.productName} before. Want a fresh analysis or is there something specific you want to know about it?`,
+                  streaming: false,
+                  timestamp: new Date().toISOString(),
+                }])
+                return
+              }
+              saveScanHistoryEntry(result.productName)
+              setScanResult(result)
+              setMessages(prev => {
+                const filtered = prev
+                return [...filtered, {
+                  id: `noor-scan-${Date.now()}`,
+                  from: 'noor',
+                  text: result.analysis,
+                  streaming: false,
+                  timestamp: new Date().toISOString(),
+                }]
+              })
+              setApiHistory(prev => {
+                const updated = [
+                  ...prev,
+                  { role: 'user', content: `I scanned a product label. Here is what I scanned: ${result.productName || 'a food product label'}` },
+                  { role: 'assistant', content: result.analysis },
+                ]
+                saveChatHistory(updated)
+                return updated
+              })
             }}
-            onKeyDown={handleKeyDown}
-            placeholder={atLimit ? '' : ready ? 'Talk to Noor…' : ''}
-            disabled={!ready || isStreaming || atLimit}
-            rows={1}
-            aria-label="Message Noor"
           />
-          {speechSupported && !input.trim() && !isStreaming && !atLimit && (
-            <button
-              className={`chat-mic-btn${isListening ? ' chat-mic-btn--active' : ''}`}
-              onClick={toggleListening}
-              aria-label={isListening ? 'Stop listening' : 'Speak message'}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="1" width="6" height="12" rx="3" />
-                <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-            </button>
-          )}
-          {(!speechSupported || input.trim() || isStreaming || atLimit) && (
-            <button
-              className="chat-send"
-              onClick={sendMessage}
-              disabled={!input.trim() || isStreaming || !ready || atLimit}
-              aria-label="Send message"
-            >
-              <SendIcon />
-            </button>
-          )}
+          <button
+            className="chat-footer-camera"
+            onClick={handleHeaderCameraClick}
+            disabled={isScanning || atLimit}
+            aria-label="Scan a label"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M8 7L9.5 5H14.5L16 7H19C20.1 7 21 7.9 21 9V18C21 19.1 20.1 20 19 20H5C3.9 20 3 19.1 3 18V9C3 7.9 3.9 7 5 7H8Z"
+                stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+              />
+              <circle cx="12" cy="13.5" r="3.5" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </button>
+          <div className="chat-input-wrap">
+            <textarea
+              ref={inputRef}
+              className="chat-input"
+              value={input}
+              onChange={e => {
+                setInput(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = `${e.target.scrollHeight}px`
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={atLimit ? '' : ready ? 'Talk to Noor…' : ''}
+              disabled={!ready || isStreaming || atLimit}
+              rows={1}
+              aria-label="Message Noor"
+            />
+            {speechSupported && !input.trim() && !isStreaming && !atLimit ? (
+              <button
+                className={`chat-mic-btn${isListening ? ' chat-mic-btn--active' : ''}`}
+                onClick={toggleListening}
+                aria-label={isListening ? 'Stop listening' : 'Speak message'}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="1" width="6" height="12" rx="3" />
+                  <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                className="chat-send"
+                onClick={sendMessage}
+                disabled={!input.trim() || isStreaming || !ready || atLimit}
+                aria-label="Send message"
+              >
+                <SendIcon />
+              </button>
+            )}
+          </div>
         </div>
         {atLimit ? (
           <p className="chat-limit-msg">You have reached today's limit. Noor will be back tomorrow.</p>
