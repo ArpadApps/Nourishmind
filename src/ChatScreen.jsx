@@ -1246,6 +1246,16 @@ export default function ChatScreen() {
 
   const startListening = () => {
     if (isListening || isStreaming || atLimit) return
+
+    // Suppress Chrome Android SpeechRecognition beep
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+      const gainNode = audioCtx.createGain()
+      gainNode.gain.value = 0
+      gainNode.connect(audioCtx.destination)
+      setTimeout(() => { audioCtx.close().catch(() => {}) }, 500)
+    } catch {}
+
     try {
       const recognition = new SpeechRecognitionAPI()
       recognition.interimResults = true
