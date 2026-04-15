@@ -882,6 +882,8 @@ export default function ChatScreen() {
   const recordingTimerRef = useRef(null)
   const recordingDurationRef = useRef(0)
   const shouldStopRef = useRef(false)
+  const [cancelActive, setCancelActive] = useState(false)
+  const touchStartYRef = useRef(null)
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
   const handleClearMemory = () => {
@@ -1643,6 +1645,11 @@ export default function ChatScreen() {
 
       {/* ── Input ── */}
       <footer className="chat-footer">
+        {isRecording && (
+          <div className={`slide-cancel-hint${cancelActive ? ' slide-cancel-hint--active' : ''}`}>
+            {cancelActive ? 'Release to cancel' : '↑ Slide up to cancel'}
+          </div>
+        )}
         <div className="chat-input-row">
           <input
             ref={headerCameraInputRef}
@@ -1797,14 +1804,48 @@ export default function ChatScreen() {
                   <div className="mic-hint">Hold to speak</div>
                 )}
                 <button
-                  className={`chat-mic-btn${isRecording ? ' chat-mic-btn--active' : ''}${isTranscribing ? ' chat-mic-btn--transcribing' : ''}`}
+                  className={`chat-mic-btn${isRecording ? ' chat-mic-btn--active' : ''}${isTranscribing ? ' chat-mic-btn--transcribing' : ''}${cancelActive ? ' chat-mic-btn--cancel' : ''}`}
                   onMouseDown={() => { startRecording(); setShowMicHint(false); localStorage.setItem('noor-mic-hint-seen', 'true'); }}
                   onMouseUp={stopRecording}
                   onMouseLeave={stopRecording}
-                  onTouchStart={(e) => { e.preventDefault(); startRecording(); setShowMicHint(false); localStorage.setItem('noor-mic-hint-seen', 'true'); }}
-                  onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+                  onTouchStart={(e) => {
+                    e.preventDefault()
+                    touchStartYRef.current = e.touches[0].clientY
+                    setCancelActive(false)
+                    startRecording()
+                    setShowMicHint(false)
+                    localStorage.setItem('noor-mic-hint-seen', 'true')
+                  }}
+                  onTouchMove={(e) => {
+                    if (touchStartYRef.current === null) return
+                    const diff = touchStartYRef.current - e.touches[0].clientY
+                    setCancelActive(diff > 50)
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    if (cancelActive) {
+                      if (recordingTimerRef.current) {
+                        clearInterval(recordingTimerRef.current)
+                        recordingTimerRef.current = null
+                      }
+                      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                        mediaRecorderRef.current.onstop = () => {}
+                        mediaRecorderRef.current.stop()
+                        try {
+                          mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop())
+                        } catch {}
+                      }
+                      setIsRecording(false)
+                      setCancelActive(false)
+                      touchStartYRef.current = null
+                      return
+                    }
+                    stopRecording()
+                    touchStartYRef.current = null
+                    setCancelActive(false)
+                  }}
                   disabled={isTranscribing}
-                  aria-label={isRecording ? 'Recording — release to stop' : isTranscribing ? 'Transcribing…' : 'Hold to speak'}
+                  aria-label={isRecording ? (cancelActive ? 'Release to cancel' : 'Recording — release to stop') : isTranscribing ? 'Transcribing…' : 'Hold to speak'}
                 >
                   {isTranscribing ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
