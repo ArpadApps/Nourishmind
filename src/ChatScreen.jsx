@@ -862,6 +862,13 @@ export default function ChatScreen() {
     scrollToBottom('smooth')
   }, [messages, showTyping])
 
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
+      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
+    }
+  }, [input])
+
   // Trigger Noor's opening message on mount (or restore history)
   useEffect(() => {
     if (openingFired.current) return
@@ -1309,12 +1316,6 @@ export default function ChatScreen() {
             const transcript = data.text?.trim()
             if (transcript) {
               setInput(transcript)
-              requestAnimationFrame(() => {
-                if (inputRef.current) {
-                  inputRef.current.style.height = 'auto'
-                  inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
-                }
-              })
             }
           }
         } catch (err) {
