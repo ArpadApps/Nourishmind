@@ -705,6 +705,55 @@
   50% { opacity: 0.4; }
 }
 
+/* ─── Recording waveform indicator ───────────────────────────────── */
+.recording-indicator {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0;
+  min-height: 28px;
+}
+
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+
+.waveform span {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: #7a9a7e;
+  animation: waveBar 1.2s ease-in-out infinite;
+}
+
+.waveform span:nth-child(1) { height: 8px; animation-delay: 0s; }
+.waveform span:nth-child(2) { height: 14px; animation-delay: 0.1s; }
+.waveform span:nth-child(3) { height: 20px; animation-delay: 0.2s; }
+.waveform span:nth-child(4) { height: 10px; animation-delay: 0.3s; }
+.waveform span:nth-child(5) { height: 24px; animation-delay: 0.15s; }
+.waveform span:nth-child(6) { height: 16px; animation-delay: 0.25s; }
+.waveform span:nth-child(7) { height: 12px; animation-delay: 0.35s; }
+.waveform span:nth-child(8) { height: 22px; animation-delay: 0.05s; }
+.waveform span:nth-child(9) { height: 8px; animation-delay: 0.3s; }
+
+@keyframes waveBar {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+.recording-time {
+  font-family: Georgia, serif;
+  font-size: 12px;
+  color: #7a9a7e;
+  white-space: nowrap;
+  min-width: 24px;
+  text-align: right;
+}
+
 /* ─── Transcribing state ─────────────────────────────────────────── */
 .chat-mic-btn--transcribing {
   color: #c8a97e;

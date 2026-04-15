@@ -1767,9 +1767,18 @@ export default function ChatScreen() {
             </svg>
           </button>
           <div className={`chat-input-wrap${isRecording ? ' chat-input-wrap--recording' : ''}${isTranscribing ? ' chat-input-wrap--transcribing' : ''}`}>
+            {isRecording && (
+              <div className="recording-indicator">
+                <div className="waveform">
+                  <span /><span /><span /><span /><span /><span /><span /><span /><span />
+                </div>
+                <span className="recording-time">{recordingDuration}s</span>
+              </div>
+            )}
             <textarea
               ref={inputRef}
               className="chat-input"
+              style={isRecording ? { position: 'absolute', opacity: 0, pointerEvents: 'none' } : undefined}
               value={input}
               onChange={e => {
                 setInput(e.target.value)
@@ -1777,7 +1786,7 @@ export default function ChatScreen() {
                 e.target.style.height = `${e.target.scrollHeight}px`
               }}
               onKeyDown={handleKeyDown}
-              placeholder={isRecording ? `Recording… ${recordingDuration}s` : isTranscribing ? 'Transcribing…' : atLimit ? '' : ready ? 'Talk to Noor…' : ''}
+              placeholder={isTranscribing ? 'Transcribing…' : atLimit ? '' : ready ? 'Talk to Noor…' : ''}
               disabled={!ready || isStreaming || atLimit}
               rows={1}
               aria-label="Message Noor"
