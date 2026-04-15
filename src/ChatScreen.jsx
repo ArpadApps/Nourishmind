@@ -1247,7 +1247,7 @@ export default function ChatScreen() {
   const startListening = () => {
     if (isListening || isStreaming || atLimit) return
 
-    // Suppress Chrome Android SpeechRecognition beep
+    // Pre-claim audio focus to reduce Chrome Android beep
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
       const gainNode = audioCtx.createGain()
@@ -1259,21 +1259,21 @@ export default function ChatScreen() {
     try {
       const recognition = new SpeechRecognitionAPI()
       recognition.interimResults = true
-      recognition.continuous = true
+      recognition.continuous = false
       recognition.lang = navigator.language || 'en-US'
+
       recognition.onresult = (e) => {
-        let transcript = ''
-        for (let i = 0; i < e.results.length; i++) {
-          transcript += e.results[i][0].transcript
-        }
-        setInput(transcript)
+        const result = e.results[e.results.length - 1]
+        setInput(result[0].transcript)
         if (inputRef.current) {
           inputRef.current.style.height = 'auto'
           inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
         }
       }
+
       recognition.onend = () => { setIsListening(false) }
       recognition.onerror = () => { setIsListening(false) }
+
       recognitionRef.current = recognition
       recognition.start()
       setIsListening(true)
