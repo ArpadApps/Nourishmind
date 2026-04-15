@@ -803,7 +803,9 @@ export default function ChatScreen() {
   const [showRetry, setShowRetry] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
-  const [showMicHint, setShowMicHint] = useState(() => !localStorage.getItem('noor-mic-hint-seen'))
+  const [recordingDuration, setRecordingDuration] = useState(0)
+  // TODO: revert to localStorage check after testing: useState(() => !localStorage.getItem('noor-mic-hint-seen'))
+  const [showMicHint, setShowMicHint] = useState(true)
 
   const chatLimit = isPro ? PRO_CHAT_LIMIT : FREE_CHAT_LIMIT
   const scanLimit = isPro ? PRO_SCAN_LIMIT : FREE_SCAN_LIMIT
@@ -830,6 +832,7 @@ export default function ChatScreen() {
   const lastMessageRef = useRef('')
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
+  const recordingTimerRef = useRef(null)
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
   const handleClearMemory = () => {
@@ -1306,10 +1309,12 @@ export default function ChatScreen() {
             const transcript = data.text?.trim()
             if (transcript) {
               setInput(transcript)
-              if (inputRef.current) {
-                inputRef.current.style.height = 'auto'
-                inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
-              }
+              requestAnimationFrame(() => {
+                if (inputRef.current) {
+                  inputRef.current.style.height = 'auto'
+                  inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
+                }
+              })
             }
           }
         } catch (err) {
@@ -1322,6 +1327,10 @@ export default function ChatScreen() {
       mediaRecorderRef.current = mediaRecorder
       mediaRecorder.start()
       setIsRecording(true)
+      setRecordingDuration(0)
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1)
+      }, 1000)
     } catch (err) {
       console.error('Mic access failed:', err)
       setIsRecording(false)
@@ -1329,6 +1338,10 @@ export default function ChatScreen() {
   }
 
   const stopRecording = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop()
     }
@@ -1339,6 +1352,9 @@ export default function ChatScreen() {
     return () => {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         mediaRecorderRef.current.stop()
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
       }
     }
   }, [])
@@ -1708,7 +1724,7 @@ export default function ChatScreen() {
                 e.target.style.height = `${e.target.scrollHeight}px`
               }}
               onKeyDown={handleKeyDown}
-              placeholder={isRecording ? 'Listening…' : isTranscribing ? 'Transcribing…' : atLimit ? '' : ready ? 'Talk to Noor…' : ''}
+              placeholder={isRecording ? `Recording… ${recordingDuration}s` : isTranscribing ? 'Transcribing…' : atLimit ? '' : ready ? 'Talk to Noor…' : ''}
               disabled={!ready || isStreaming || atLimit}
               rows={1}
               aria-label="Message Noor"
