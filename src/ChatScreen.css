@@ -705,6 +705,21 @@
   50% { opacity: 0.4; }
 }
 
+/* ─── Transcribing state ─────────────────────────────────────────── */
+.chat-mic-btn--transcribing {
+  color: #c8a97e;
+  cursor: wait;
+}
+
+.chat-input-wrap--transcribing {
+  border-color: #c8a97e;
+}
+
+.chat-input-wrap--transcribing .chat-input::placeholder {
+  color: #c8a97e;
+  animation: listeningPulse 1.5s ease-in-out infinite;
+}
+
 /* ─── No API key notice ──────────────────────────────────────────── */
 .no-key-notice {
   height: 100svh;

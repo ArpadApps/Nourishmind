@@ -801,10 +801,9 @@ export default function ChatScreen() {
   const [showSettings, setShowSettings] = useState(false)
   const [showDailyCard, setShowDailyCard] = useState(false)
   const [showRetry, setShowRetry] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [showMicHint, setShowMicHint] = useState(() => {
-    return !localStorage.getItem('noor-mic-hint-seen')
-  })
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [showMicHint, setShowMicHint] = useState(() => !localStorage.getItem('noor-mic-hint-seen'))
 
   const chatLimit = isPro ? PRO_CHAT_LIMIT : FREE_CHAT_LIMIT
   const scanLimit = isPro ? PRO_SCAN_LIMIT : FREE_SCAN_LIMIT
@@ -829,7 +828,8 @@ export default function ChatScreen() {
   const chatContainerRef = useRef(null)
   const headerCameraInputRef = useRef(null)
   const lastMessageRef = useRef('')
-  const recognitionRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
   const handleClearMemory = () => {
@@ -1241,57 +1241,9 @@ export default function ChatScreen() {
     }])
   }, [scanResult])
 
-  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
-  const speechSupported = !!SpeechRecognitionAPI
+  const whisperSupported = !!(navigator.mediaDevices?.getUserMedia)
 
-  const startListening = () => {
-    if (isListening || isStreaming || atLimit) return
-
-    // Pre-claim audio focus to reduce Chrome Android beep
-    try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
-      const gainNode = audioCtx.createGain()
-      gainNode.gain.value = 0
-      gainNode.connect(audioCtx.destination)
-      setTimeout(() => { audioCtx.close().catch(() => {}) }, 500)
-    } catch {}
-
-    try {
-      const recognition = new SpeechRecognitionAPI()
-      recognition.interimResults = true
-      recognition.continuous = false
-      recognition.lang = navigator.language || 'en-US'
-
-      recognition.onresult = (e) => {
-        const result = e.results[e.results.length - 1]
-        setInput(result[0].transcript)
-        if (inputRef.current) {
-          inputRef.current.style.height = 'auto'
-          inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
-        }
-      }
-
-      recognition.onend = () => { setIsListening(false) }
-      recognition.onerror = () => { setIsListening(false) }
-
-      recognitionRef.current = recognition
-      recognition.start()
-      setIsListening(true)
-    } catch {
-      setIsListening(false)
-    }
-  }
-
-  const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-    }
-    setIsListening(false)
-  }
-
-  useEffect(() => {
-    return () => { recognitionRef.current?.stop() }
-  }, [])
+  const TRANSCRIBE_URL = '/api/transcribe'
 
   useEffect(() => {
     if (!showMicHint) return
@@ -1301,6 +1253,95 @@ export default function ChatScreen() {
     }, 3000)
     return () => clearTimeout(timer)
   }, [showMicHint])
+
+  const startRecording = async () => {
+    if (isRecording || isTranscribing || isStreaming || atLimit) return
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm'
+      })
+
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data)
+      }
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop())
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        audioChunksRef.current = []
+
+        if (audioBlob.size < 1000) {
+          setIsRecording(false)
+          return
+        }
+
+        setIsTranscribing(true)
+
+        try {
+          const reader = new FileReader()
+          const base64 = await new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result.split(',')[1])
+            reader.onerror = reject
+            reader.readAsDataURL(audioBlob)
+          })
+
+          const response = await fetch(TRANSCRIBE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              audio: base64,
+              prompt: 'Noor, NourishMind, magnesium, sulforaphane, polyphenols, omega-3, nicotinamide riboside, autophagy, microbiome, cortisol, insulin, fructose, aspartame, glycation'
+            }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            const transcript = data.text?.trim()
+            if (transcript) {
+              setInput(transcript)
+              if (inputRef.current) {
+                inputRef.current.style.height = 'auto'
+                inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Transcription failed:', err)
+        }
+
+        setIsTranscribing(false)
+      }
+
+      mediaRecorderRef.current = mediaRecorder
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (err) {
+      console.error('Mic access failed:', err)
+      setIsRecording(false)
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+    setIsRecording(false)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop()
+      }
+    }
+  }, [])
 
   const remaining = Math.max(0, chatLimit - dailyCount)
   const atLimit = remaining === 0
@@ -1656,7 +1697,7 @@ export default function ChatScreen() {
               <circle cx="12" cy="13.5" r="3.5" stroke="currentColor" strokeWidth="1.6" />
             </svg>
           </button>
-          <div className={`chat-input-wrap${isListening ? ' chat-input-wrap--recording' : ''}`}>
+          <div className={`chat-input-wrap${isRecording ? ' chat-input-wrap--recording' : ''}${isTranscribing ? ' chat-input-wrap--transcribing' : ''}`}>
             <textarea
               ref={inputRef}
               className="chat-input"
@@ -1667,31 +1708,41 @@ export default function ChatScreen() {
                 e.target.style.height = `${e.target.scrollHeight}px`
               }}
               onKeyDown={handleKeyDown}
-              placeholder={isListening ? 'Listening…' : atLimit ? '' : ready ? 'Talk to Noor…' : ''}
+              placeholder={isRecording ? 'Listening…' : isTranscribing ? 'Transcribing…' : atLimit ? '' : ready ? 'Talk to Noor…' : ''}
               disabled={!ready || isStreaming || atLimit}
               rows={1}
               aria-label="Message Noor"
             />
-            {speechSupported && !input.trim() && !isStreaming && !atLimit ? (
+            {whisperSupported && !input.trim() && !isStreaming && !atLimit && !isTranscribing ? (
               <div className="mic-btn-wrap">
                 {showMicHint && (
                   <div className="mic-hint">Hold to speak</div>
                 )}
                 <button
-                  className={`chat-mic-btn${isListening ? ' chat-mic-btn--active' : ''}`}
-                  onMouseDown={() => { startListening(); setShowMicHint(false); localStorage.setItem('noor-mic-hint-seen', 'true'); }}
-                  onMouseUp={stopListening}
-                  onMouseLeave={stopListening}
-                  onTouchStart={(e) => { e.preventDefault(); startListening(); setShowMicHint(false); localStorage.setItem('noor-mic-hint-seen', 'true'); }}
-                  onTouchEnd={(e) => { e.preventDefault(); stopListening(); }}
-                  aria-label={isListening ? 'Recording — release to stop' : 'Hold to speak'}
+                  className={`chat-mic-btn${isRecording ? ' chat-mic-btn--active' : ''}${isTranscribing ? ' chat-mic-btn--transcribing' : ''}`}
+                  onMouseDown={() => { startRecording(); setShowMicHint(false); localStorage.setItem('noor-mic-hint-seen', 'true'); }}
+                  onMouseUp={stopRecording}
+                  onMouseLeave={stopRecording}
+                  onTouchStart={(e) => { e.preventDefault(); startRecording(); setShowMicHint(false); localStorage.setItem('noor-mic-hint-seen', 'true'); }}
+                  onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+                  disabled={isTranscribing}
+                  aria-label={isRecording ? 'Recording — release to stop' : isTranscribing ? 'Transcribing…' : 'Hold to speak'}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="1" width="6" height="12" rx="3" />
-                    <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                    <line x1="8" y1="23" x2="16" y2="23" />
-                  </svg>
+                  {isTranscribing ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" opacity="0.3" />
+                      <path d="M12 2a10 10 0 0 1 10 10" strokeDasharray="31.4" strokeDashoffset="0">
+                        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite" />
+                      </path>
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="1" width="6" height="12" rx="3" />
+                      <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                      <line x1="12" y1="19" x2="12" y2="23" />
+                      <line x1="8" y1="23" x2="16" y2="23" />
+                    </svg>
+                  )}
                 </button>
               </div>
             ) : (
