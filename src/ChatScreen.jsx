@@ -1765,7 +1765,7 @@ export default function ChatScreen() {
             disabled={isScanning || atLimit}
             aria-label="Scan a label"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M8 7L9.5 5H14.5L16 7H19C20.1 7 21 7.9 21 9V18C21 19.1 20.1 20 19 20H5C3.9 20 3 19.1 3 18V9C3 7.9 3.9 7 5 7H8Z"
                 stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
