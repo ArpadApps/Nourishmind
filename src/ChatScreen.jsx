@@ -1459,7 +1459,7 @@ export default function ChatScreen() {
             <span className="chat-header-name">
               Noor
               {isPro ? (
-                <span className="plan-badge plan-badge--pro">◆</span>
+                <span className="plan-badge plan-badge--pro">Pro</span>
               ) : (
                 <span className="plan-badge plan-badge--free">Free</span>
               )}
