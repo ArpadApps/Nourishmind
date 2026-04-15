@@ -674,6 +674,8 @@ function AboutPanel({ onClose }) {
 function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemoveProduct, onClose }) {
   const overlayRef = useRef(null)
   const handleOverlayClick = (e) => { if (e.target === overlayRef.current) onClose() }
+  const [devTaps, setDevTaps] = useState(0)
+  const showDev = devTaps >= 5
 
   const hasMemory = memory && (
     memory.name ||
@@ -753,10 +755,16 @@ function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemovePro
         <div className="settings-section">
           <h3 className="settings-section-title">About NourishMind</h3>
           <p className="settings-about-text">NourishMind helps you understand what's really in your food. Powered by Noor, your AI nutrition companion.</p>
-          <p className="settings-version">Version 1.0.0</p>
+          <p
+            className="settings-version"
+            onClick={() => setDevTaps(prev => prev + 1)}
+            style={{ cursor: 'default', userSelect: 'none' }}
+          >
+            Version 1.0.0{devTaps > 0 && devTaps < 5 ? ` (${5 - devTaps} more)` : ''}
+          </p>
         </div>
 
-        <div className="settings-section settings-section--last">
+        <div className="settings-section">
           <h3 className="settings-section-title">Legal</h3>
           <div className="settings-links">
             {/* TODO: wire to in-app navigation when setScreen is available from App.jsx */}
@@ -764,6 +772,36 @@ function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemovePro
             <button className="settings-link-btn" onClick={() => window.open('/privacy', '_blank')}>Privacy Policy</button>
           </div>
         </div>
+        {showDev && (
+          <div className="settings-section settings-section--last">
+            <h3 className="settings-section-title">Developer</h3>
+            <button
+              className="settings-btn-upgrade"
+              onClick={() => {
+                const newPro = !isPro
+                if (newPro) {
+                  localStorage.setItem('noor-pro', 'true')
+                } else {
+                  localStorage.removeItem('noor-pro')
+                }
+                window.location.reload()
+              }}
+            >
+              {isPro ? 'Switch to Free' : 'Switch to Pro'}
+            </button>
+            <div style={{ height: 12 }} />
+            <button
+              className="settings-btn-muted"
+              onClick={() => {
+                ['noor-memory', 'noor-chat-history', 'noor-product-shelf', 'noor-daily-cards', 'noor-install-date',
+                 'noor_messages_date', 'noor_messages_count', 'noor_scans_date', 'noor_scans_count', 'noor-mic-hint-seen', 'noor-mic-hint-version'].forEach(k => localStorage.removeItem(k))
+                window.location.reload()
+              }}
+            >
+              Reset All Data
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -805,6 +843,16 @@ export default function ChatScreen() {
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [showMicHint, setShowMicHint] = useState(() => !localStorage.getItem('noor-mic-hint-seen'))
+
+  useEffect(() => {
+    // One-time reset: clear old mic hint flag so returning users see the updated hint
+    const hintVersion = localStorage.getItem('noor-mic-hint-version')
+    if (hintVersion !== '2') {
+      localStorage.removeItem('noor-mic-hint-seen')
+      localStorage.setItem('noor-mic-hint-version', '2')
+      setShowMicHint(true)
+    }
+  }, [])
 
   const chatLimit = isPro ? PRO_CHAT_LIMIT : FREE_CHAT_LIMIT
   const scanLimit = isPro ? PRO_SCAN_LIMIT : FREE_SCAN_LIMIT
@@ -1309,12 +1357,26 @@ export default function ChatScreen() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               audio: base64,
+              prompt: 'Noor, NourishMind, magnesium, sulforaphane, polyphenols, omega-3, nicotinamide riboside, autophagy, microbiome, cortisol, insulin, fructose, aspartame, glycation'
             }),
           })
 
           if (response.ok) {
             const data = await response.json()
-            const transcript = data.text?.trim()
+            let transcript = data.text?.trim()
+
+            // Filter Whisper hallucinations — if the transcript is just the prompt words back, discard it
+            if (transcript) {
+              const promptWords = 'noor nourishmind magnesium sulforaphane polyphenols omega-3 nicotinamide riboside autophagy microbiome cortisol insulin fructose aspartame glycation'
+              const cleanTranscript = transcript.toLowerCase().replace(/[.,\s]+/g, ' ').trim()
+              const similarity = promptWords.split(' ').filter(w => cleanTranscript.includes(w)).length
+              const transcriptWordCount = cleanTranscript.split(' ').length
+              // If more than 60% of the transcript words match prompt vocabulary, it's a hallucination
+              if (similarity > transcriptWordCount * 0.6) {
+                transcript = null
+              }
+            }
+
             if (transcript) {
               setInput(transcript)
             }
@@ -1441,35 +1503,6 @@ export default function ChatScreen() {
               <div className="memory-label">
                 {!isPro ? "Pro lets Noor remember you" : privateMode ? "Doesn't remember" : "Remembers you"}
               </div>
-            )}
-            {window.location.hostname === 'localhost' && showMemoryLabel && (
-              <button
-                className="memory-reset-btn"
-                onClick={() => {
-                  ['noor-memory', 'noor-chat-history', 'noor-product-shelf', 'noor-daily-cards', 'noor-install-date',
-                   'noor_messages_date', 'noor_messages_count', 'noor_scans_date', 'noor_scans_count'].forEach(k => localStorage.removeItem(k))
-                  window.location.reload()
-                }}
-              >
-                Reset
-              </button>
-            )}
-            {window.location.hostname === 'localhost' && (
-              <button
-                className="memory-reset-btn"
-                onClick={() => {
-                  const newPro = !isPro
-                  if (newPro) {
-                    localStorage.setItem('noor-pro', 'true')
-                  } else {
-                    localStorage.removeItem('noor-pro')
-                  }
-                  setIsPro(newPro)
-                }}
-                style={{ top: 'calc(100% + 54px)' }}
-              >
-                {isPro ? '⬇ Switch to Free' : '⬆ Switch to Pro'}
-              </button>
             )}
           </div>
           <button
