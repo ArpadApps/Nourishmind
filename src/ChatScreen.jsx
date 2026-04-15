@@ -881,6 +881,7 @@ export default function ChatScreen() {
   const audioChunksRef = useRef([])
   const recordingTimerRef = useRef(null)
   const recordingDurationRef = useRef(0)
+  const shouldStopRef = useRef(false)
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
   const handleClearMemory = () => {
@@ -1314,6 +1315,7 @@ export default function ChatScreen() {
 
   const startRecording = async () => {
     if (isRecording || isTranscribing || isStreaming || atLimit) return
+    shouldStopRef.current = false
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -1391,6 +1393,16 @@ export default function ChatScreen() {
       mediaRecorderRef.current = mediaRecorder
       mediaRecorder.start()
       setIsRecording(true)
+      // If user already released the button during async setup, stop immediately
+      if (shouldStopRef.current) {
+        mediaRecorder.stop()
+        setIsRecording(false)
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current)
+          recordingTimerRef.current = null
+        }
+        return
+      }
       setRecordingDuration(0)
       recordingDurationRef.current = 0
       recordingTimerRef.current = setInterval(() => {
@@ -1407,6 +1419,7 @@ export default function ChatScreen() {
   }
 
   const stopRecording = () => {
+    shouldStopRef.current = true
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current)
       recordingTimerRef.current = null
