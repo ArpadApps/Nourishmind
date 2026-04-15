@@ -804,8 +804,7 @@ export default function ChatScreen() {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
-  // TODO: revert to localStorage check after testing: useState(() => !localStorage.getItem('noor-mic-hint-seen'))
-  const [showMicHint, setShowMicHint] = useState(true)
+  const [showMicHint, setShowMicHint] = useState(() => !localStorage.getItem('noor-mic-hint-seen'))
 
   const chatLimit = isPro ? PRO_CHAT_LIMIT : FREE_CHAT_LIMIT
   const scanLimit = isPro ? PRO_SCAN_LIMIT : FREE_SCAN_LIMIT
@@ -833,6 +832,7 @@ export default function ChatScreen() {
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const recordingTimerRef = useRef(null)
+  const recordingDurationRef = useRef(0)
   const handleHeaderCameraClick = () => { headerCameraInputRef.current?.click() }
 
   const handleClearMemory = () => {
@@ -1287,8 +1287,10 @@ export default function ChatScreen() {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
         audioChunksRef.current = []
 
-        if (audioBlob.size < 1000) {
+        // Ignore recordings under 1 second or with tiny file size (silence)
+        if (audioBlob.size < 1000 || recordingDurationRef.current < 1) {
           setIsRecording(false)
+          setIsTranscribing(false)
           return
         }
 
@@ -1307,7 +1309,6 @@ export default function ChatScreen() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               audio: base64,
-              prompt: 'Noor, NourishMind, magnesium, sulforaphane, polyphenols, omega-3, nicotinamide riboside, autophagy, microbiome, cortisol, insulin, fructose, aspartame, glycation'
             }),
           })
 
@@ -1329,8 +1330,13 @@ export default function ChatScreen() {
       mediaRecorder.start()
       setIsRecording(true)
       setRecordingDuration(0)
+      recordingDurationRef.current = 0
       recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1)
+        setRecordingDuration(prev => {
+          const next = prev + 1
+          recordingDurationRef.current = next
+          return next
+        })
       }, 1000)
     } catch (err) {
       console.error('Mic access failed:', err)
