@@ -1458,13 +1458,11 @@ export default function ChatScreen() {
           <div className="chat-header-info">
             <span className="chat-header-name">
               Noor
-              <span
-                className="plan-badge"
-                style={isPro
-                  ? { background: '#c8a97e', color: '#0e0d0c', border: 'none' }
-                  : { background: 'transparent', color: '#706560', border: '1px solid #706560' }
-                }
-              >{isPro ? 'Pro' : 'Free'}</span>
+              {isPro ? (
+                <span className="plan-badge plan-badge--pro">◆</span>
+              ) : (
+                <span className="plan-badge plan-badge--free">Free</span>
+              )}
             </span>
             <span className="chat-header-status">
               <span className={`status-dot${isStreaming ? ' status-dot--typing' : atLimit ? ' status-dot--limit' : ''}`} />
@@ -1765,7 +1763,7 @@ export default function ChatScreen() {
             disabled={isScanning || atLimit}
             aria-label="Scan a label"
           >
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M8 7L9.5 5H14.5L16 7H19C20.1 7 21 7.9 21 9V18C21 19.1 20.1 20 19 20H5C3.9 20 3 19.1 3 18V9C3 7.9 3.9 7 5 7H8Z"
                 stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"

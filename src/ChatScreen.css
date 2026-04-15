@@ -64,15 +64,34 @@
 
 .plan-badge {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin-left: 6px;
+  position: relative;
+  top: -1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plan-badge--free {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 2px 6px;
   border-radius: 4px;
-  margin-left: 6px;
-  position: relative;
-  top: -1px;
+  background: transparent;
+  color: #706560;
+  border: 1px solid #706560;
+}
+
+.plan-badge--pro {
+  font-size: 10px;
+  color: #c8a97e;
+  text-shadow: 0 0 8px rgba(200, 169, 126, 0.4);
+  border: none;
+  background: none;
+  padding: 0;
+  line-height: 1;
 }
 
 .chat-header-status {
@@ -577,8 +596,8 @@
 
 /* ─── Footer camera button ───────────────────────────────────────── */
 .chat-footer-camera {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: none;
   border: none;
@@ -881,7 +900,7 @@
   .noor-avatar--header { width: 32px; height: 32px; }
   .chat-nm-logo { width: 48px; height: 48px; }
   .chat-header-right { gap: 6px; }
-  .plan-badge { font-size: 8px; padding: 1px 4px; }
+  .plan-badge--free { font-size: 8px; padding: 1px 4px; }
   .chat-footer-camera { width: 38px; height: 38px; }
   .chat-footer-camera svg { width: 22px; height: 22px; }
   .chat-mic-btn { width: 34px; height: 34px; }
@@ -987,8 +1006,8 @@
 }
 
 @media (min-width: 600px) {
-  .chat-footer-camera { width: 48px; height: 48px; }
-  .chat-footer-camera svg { width: 28px; height: 28px; }
+  .chat-footer-camera { width: 52px; height: 52px; }
+  .chat-footer-camera svg { width: 30px; height: 30px; }
   .chat-mic-btn { width: 42px; height: 42px; }
   .chat-mic-btn svg { width: 22px; height: 22px; }
   .chat-send { width: 42px; height: 42px; }
