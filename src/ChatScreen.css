@@ -778,6 +778,11 @@
   text-align: right;
 }
 
+.recording-time--warning {
+  color: #b5544a;
+  font-weight: 600;
+}
+
 /* ─── Transcribing state ─────────────────────────────────────────── */
 .chat-mic-btn--transcribing {
   color: #c8a97e;
