@@ -6,9 +6,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px 40px;
-  padding-top: max(48px, calc(48px + env(safe-area-inset-top)));
-  padding-bottom: max(40px, calc(40px + env(safe-area-inset-bottom)));
+  padding: 36px 24px 28px;
+  padding-top: max(36px, calc(36px + env(safe-area-inset-top)));
+  padding-bottom: max(28px, calc(28px + env(safe-area-inset-bottom)));
   background: #0e0d0c;
 }
 
@@ -27,8 +27,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 48px;
+  gap: 8px;
+  margin-bottom: 36px;
 }
 
 .nm-logo {
@@ -90,13 +90,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .welcome-avatar-glow {
   box-shadow: 0 0 40px #3a2e22;
   border-radius: 50%;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .welcome-avatar {
@@ -128,13 +128,13 @@
   font-style: italic;
   color: #b8a898;
   line-height: 1.6;
-  margin-bottom: 36px;
+  margin-bottom: 28px;
 }
 
 /* ─── 7. CTA ─────────────────────────────────────────────────────── */
 .welcome-cta {
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .welcome-btn {
@@ -167,7 +167,7 @@
 .welcome-subtext {
   font-size: 11px;
   color: #6b5e4e;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 /* ─── 9. Pillars ─────────────────────────────────────────────────── */
@@ -175,7 +175,7 @@
   font-size: 10px;
   color: #6b5e4e;
   letter-spacing: 0.02em;
-  margin-bottom: 40px;
+  margin-bottom: 28px;
 }
 
 /* ─── 10. Footer ─────────────────────────────────────────────────── */
@@ -218,37 +218,47 @@
 /* ─── Short screens: moderate compression (≤ 900px tall) ─────────── */
 @media (max-height: 900px) {
   .welcome {
-    padding: 32px 24px 28px;
+    padding: 28px 24px 20px;
   }
   .welcome-brand {
-    margin-bottom: 32px;
+    gap: 6px;
+    margin-bottom: 22px;
   }
   .welcome-nm-logo {
-    width: 84px;
-    height: 84px;
+    width: 80px;
+    height: 80px;
   }
   .welcome-eyebrow {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   .welcome-headline {
     font-size: 28px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
   .welcome-divider {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+  }
+  .welcome-avatar-glow {
+    margin-bottom: 8px;
   }
   .welcome-avatar-block {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
   .welcome-avatar {
-    width: 130px;
-    height: 130px;
+    width: 120px;
+    height: 120px;
   }
   .welcome-quote {
-    margin-bottom: 24px;
+    margin-bottom: 18px;
+  }
+  .welcome-cta {
+    margin-bottom: 10px;
+  }
+  .welcome-subtext {
+    margin-bottom: 12px;
   }
   .welcome-pillars {
-    margin-bottom: 28px;
+    margin-bottom: 20px;
   }
 }
 

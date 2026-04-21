@@ -117,7 +117,8 @@ function buildSystemPrompt(memory, remaining, productShelf) {
   const timeContext = `CURRENT DATE AND TIME: ${fullDateTime}
 Today is ${dayOfWeek}, ${date}. The time right now is ${time}.
 Everything the user has said in this conversation happened TODAY (${date}) unless they explicitly reference a different day. Do not assume any food or activity mentioned was yesterday. If the user says "I had eggs this morning" — that was THIS morning, ${date}. Never confuse today with yesterday.`
-  let prompt = timeContext + '\n\n' + NOOR_SYSTEM_PROMPT
+  const timestampInstructions = `Every message in this conversation includes a timestamp in [Month Day, Year at HH:MM] format. Use these timestamps to understand WHEN things were said. Messages separated by "[--- New session ---]" markers happened in different sessions, potentially hours or days apart. Never claim something happened "today" if its timestamp shows a different date than the current date above. If the user asks when you last spoke, compare the current date/time with the timestamps on messages to give an accurate answer. Be precise about time — say "a few days ago" or "last Tuesday" rather than guessing.`
+  let prompt = timeContext + '\n\n' + timestampInstructions + '\n\n' + NOOR_SYSTEM_PROMPT
   if (memory && Object.keys(memory).length) {
     const lines = [
       'WHAT YOU ALREADY KNOW ABOUT THIS PERSON from previous conversations — weave this in naturally, never announce that you remember:',
@@ -232,6 +233,39 @@ const API_HEADERS = {
     'anthropic-version': '2023-06-01',
     'anthropic-dangerous-direct-browser-access': 'true',
   }),
+}
+
+// ─── API message builder ──────────────────────────────────────────────────
+
+function formatTimestampForApi(isoStr) {
+  if (!isoStr) return null
+  const d = new Date(isoStr)
+  const month = d.toLocaleDateString('en-US', { month: 'long' })
+  const day = d.getDate()
+  const year = d.getFullYear()
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return `${month} ${day}, ${year} at ${hours}:${minutes}`
+}
+
+function buildApiMessages(history) {
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000
+  const result = []
+  for (let i = 0; i < history.length; i++) {
+    const msg = history[i]
+    const prev = i > 0 ? history[i - 1] : null
+    if (prev && msg.timestamp && prev.timestamp) {
+      const gap = new Date(msg.timestamp) - new Date(prev.timestamp)
+      if (gap > TWO_HOURS_MS) {
+        result.push({ role: 'user', content: '[--- New session ---]' })
+        result.push({ role: 'assistant', content: '[Acknowledged]' })
+      }
+    }
+    const ts = formatTimestampForApi(msg.timestamp)
+    const content = ts ? `[${ts}] ${msg.content}` : msg.content
+    result.push({ role: msg.role, content })
+  }
+  return result
 }
 
 // ─── Product Shelf ────────────────────────────────────────────────────────
@@ -960,10 +994,11 @@ export default function ChatScreen() {
     const OPENING = OPENINGS[Math.floor(Math.random() * OPENINGS.length)]
 
     setTimeout(() => {
-      setMessages([{ id: 'noor-open', from: 'noor', text: OPENING, streaming: false, timestamp: new Date().toISOString() }])
+      const openingTs = new Date().toISOString()
+      setMessages([{ id: 'noor-open', from: 'noor', text: OPENING, streaming: false, timestamp: openingTs }])
       setApiHistory([
-        { role: 'user', content: 'Hi' },
-        { role: 'assistant', content: OPENING },
+        { role: 'user', content: 'Hi', timestamp: openingTs },
+        { role: 'assistant', content: OPENING, timestamp: openingTs },
       ])
       setReady(true)
       setTimeout(() => inputRef.current?.focus(), 100)
@@ -1000,11 +1035,12 @@ export default function ChatScreen() {
     const finalSystemPrompt = hiddenContext
       ? systemPrompt + "\n\n" + hiddenContext
       : systemPrompt
-    const userHistory = [...apiHistory, { role: 'user', content: text }]
+    const rawUserHistory = [...apiHistory, { role: 'user', content: text, timestamp: new Date().toISOString() }]
+    const userHistory = buildApiMessages(rawUserHistory)
 
     setMessages(prev => [
       ...prev,
-      { id: `user-${Date.now()}`, from: 'user', text, streaming: false, timestamp: new Date().toISOString() },
+      { id: `user-${Date.now()}`, from: 'user', text, streaming: false, timestamp: rawUserHistory[rawUserHistory.length - 1].timestamp },
     ])
     setTimeout(() => scrollToBottom('instant'), 0)
 
@@ -1071,7 +1107,7 @@ export default function ChatScreen() {
         setMessages(prev =>
           prev.map(m => m.id === noorMsgId ? { ...m, streaming: false } : m)
         )
-        const newApiHistory = [...userHistory, { role: 'assistant', content: noorText }]
+        const newApiHistory = [...rawUserHistory, { role: 'assistant', content: noorText, timestamp: new Date().toISOString() }]
         setApiHistory(newApiHistory)
         if (!privateMode) saveChatHistory(newApiHistory)
         setIsStreaming(false)
@@ -1079,7 +1115,7 @@ export default function ChatScreen() {
 
         // Fire-and-forget: extract and persist any new user info (Pro only)
         if (!privateMode && isPro) {
-          extractMemoryUpdate(text, noorText, currentMemory, userHistory).then(result => {
+          extractMemoryUpdate(text, noorText, currentMemory, rawUserHistory).then(result => {
             if (!result) return
             if (result.memory) {
               const merged = mergeMemory(currentMemory, result.memory)
@@ -1146,11 +1182,12 @@ export default function ChatScreen() {
     const newRemaining = Math.max(0, chatLimit - newCount)
     const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf)
     // apiText contains the card context inline — sent to the API, not shown in the UI
-    const userHistory = [...apiHistory, { role: 'user', content: apiText }]
+    const rawUserHistory = [...apiHistory, { role: 'user', content: apiText, timestamp: new Date().toISOString() }]
+    const userHistory = buildApiMessages(rawUserHistory)
 
     setMessages(prev => [
       ...prev,
-      { id: `user-${Date.now()}`, from: 'user', text: displayText, streaming: false, timestamp: new Date().toISOString() },
+      { id: `user-${Date.now()}`, from: 'user', text: displayText, streaming: false, timestamp: rawUserHistory[rawUserHistory.length - 1].timestamp },
     ])
     setTimeout(() => scrollToBottom('instant'), 0)
 
@@ -1215,7 +1252,7 @@ export default function ChatScreen() {
         setMessages(prev =>
           prev.map(m => m.id === noorMsgId ? { ...m, streaming: false } : m)
         )
-        const newApiHistory = [...userHistory, { role: 'assistant', content: noorText }]
+        const newApiHistory = [...rawUserHistory, { role: 'assistant', content: noorText, timestamp: new Date().toISOString() }]
         setApiHistory(newApiHistory)
         if (!privateMode) saveChatHistory(newApiHistory)
         setIsStreaming(false)
@@ -1223,7 +1260,7 @@ export default function ChatScreen() {
 
         // Fire-and-forget: extract and persist any new user info (Pro only)
         if (!privateMode && isPro) {
-          extractMemoryUpdate(displayText, noorText, currentMemory, userHistory, true).then(result => {
+          extractMemoryUpdate(displayText, noorText, currentMemory, rawUserHistory, true).then(result => {
             if (!result) return
             if (result.memory) {
               const merged = mergeMemory(currentMemory, result.memory)
