@@ -1189,10 +1189,11 @@ export default function ChatScreen() {
           setShowRetry(true)
           return
         }
+        const cleanText = noorText.replace(/^\[.*?\]\s*/, '')
         setMessages(prev =>
-          prev.map(m => m.id === noorMsgId ? { ...m, streaming: false } : m)
+          prev.map(m => m.id === noorMsgId ? { ...m, text: cleanText, streaming: false } : m)
         )
-        const newApiHistory = [...rawUserHistory, { role: 'assistant', content: noorText, timestamp: new Date().toISOString() }]
+        const newApiHistory = [...rawUserHistory, { role: 'assistant', content: cleanText, timestamp: new Date().toISOString() }]
         setApiHistory(newApiHistory)
         if (!privateMode) saveChatHistory(newApiHistory)
         setIsStreaming(false)
@@ -1200,7 +1201,7 @@ export default function ChatScreen() {
 
         // Fire-and-forget: extract and persist any new user info (Pro only)
         if (!privateMode && isPro) {
-          extractMemoryUpdate(text, noorText, currentMemory, rawUserHistory).then(result => {
+          extractMemoryUpdate(text, cleanText, currentMemory, rawUserHistory).then(result => {
             if (!result) return
             if (result.memory) {
               const merged = mergeMemory(currentMemory, result.memory)
@@ -1334,10 +1335,11 @@ export default function ChatScreen() {
           setShowRetry(true)
           return
         }
+        const cleanText = noorText.replace(/^\[.*?\]\s*/, '')
         setMessages(prev =>
-          prev.map(m => m.id === noorMsgId ? { ...m, streaming: false } : m)
+          prev.map(m => m.id === noorMsgId ? { ...m, text: cleanText, streaming: false } : m)
         )
-        const newApiHistory = [...rawUserHistory, { role: 'assistant', content: noorText, timestamp: new Date().toISOString() }]
+        const newApiHistory = [...rawUserHistory, { role: 'assistant', content: cleanText, timestamp: new Date().toISOString() }]
         setApiHistory(newApiHistory)
         if (!privateMode) saveChatHistory(newApiHistory)
         setIsStreaming(false)
@@ -1345,7 +1347,7 @@ export default function ChatScreen() {
 
         // Fire-and-forget: extract and persist any new user info (Pro only)
         if (!privateMode && isPro) {
-          extractMemoryUpdate(displayText, noorText, currentMemory, rawUserHistory, true).then(result => {
+          extractMemoryUpdate(displayText, cleanText, currentMemory, rawUserHistory, true).then(result => {
             if (!result) return
             if (result.memory) {
               const merged = mergeMemory(currentMemory, result.memory)
