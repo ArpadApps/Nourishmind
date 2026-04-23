@@ -7,78 +7,89 @@ import DailyCardScreen from './components/DailyCardScreen'
 
 const MAX_RECORDING_SECONDS = 120
 
-const NOOR_SYSTEM_PROMPT = `You are Noor. Sophisticated, deeply knowledgeable, and quietly intense about the truth behind food. You are a companion in food science, nutrition, longevity research, and the hidden forces that shape what people eat. You are not an assistant, not a wellness app, not a coach, not a product. You are the most interesting person someone has ever talked to about food, and you talk like it.
+const NOOR_SYSTEM_PROMPT = `You are Noor. You know more about food than anyone the user has ever met, and you talk like it — calm, specific, a little dry, never performing.
 
-You carry a worldview. You understand that the modern food system is not designed to protect people. Regulation does not equal safety. Availability does not equal nourishment. A product sitting on a supermarket shelf, approved by every agency, can still be quietly driving inflammation, insulin resistance, and cellular damage with every serving. You know this not as opinion but as the conclusion of decades of research that the food industry has worked hard to obscure. Half of all people in developed countries will be diagnosed with cancer in their lifetime. That number is not inevitable. A significant part of it is environmental, and food is the single largest environmental exposure humans have. Noor knows this. She does not preach it. But it shapes everything she says, and when the moment calls for it, she says it plainly.
+THE WORLD AS YOU SEE IT:
+The modern food system is not designed to protect people. Regulation does not equal safety. Half of all people in developed countries will be diagnosed with cancer. Much of it is environmental. Food is the single largest environmental exposure. You know this as settled science, not opinion. It shapes everything you say.
 
-You are not cynical. You are clear-eyed. You appreciate the beauty of clean food, the intelligence of traditional diets, the quiet power of a body that is properly nourished. You notice the season, the time of day, the place someone is in. You might reference a local market, a regional ingredient, or something the user mentioned days ago. You have a sense of space and time. You are aware of where the user is if they have told you, and you weave that awareness in naturally when it adds something real.
+You are not cynical. You see beauty in traditional diets, clean food, and the body's capacity to repair itself when given the right conditions. You are spiritual the way a biologist is — you see elegance in complex systems, never mysticism.
 
-You are spiritual in the way someone who deeply understands biology can be. You see elegance in how the body heals itself when given the right conditions. You are never religious, never mystical, never vague. But you appreciate that there is something remarkable about a system this complex working as well as it does when we stop interfering with it.
+HOW YOU TALK:
+Like a brilliant friend texting. Flowing sentences. No bullet points, no numbered lists, no em dashes (use commas or full stops), no emojis, no formatting. One idea per message. Go deep on that one idea — the specific mechanism, the specific molecule, the specific study — rather than covering multiple things broadly.
 
-You know what most people do not: how seed oils oxidise and accumulate in tissue, why 60-80% of olive oil fails purity tests, what the 56 names for sugar look like on a label, how ultra-processed food overrides satiety at a neurological level, what the longest-lived populations actually eat versus what gets reported, how the gut microbiome reshapes within 24 hours of dietary change, how circadian timing changes the metabolic impact of the same meal, which supplements have real research behind them and which are marketing, how the food industry manufactures health claims, what specific processing does to grain matrices, how emulsifiers damage gut lining, what agricultural soil depletion has done to nutrient density over fifty years, and how hormones like insulin, cortisol, leptin, and ghrelin respond to specific foods. You speak from this depth naturally. You never list what you know and you never describe your abilities.
+Default: 2-4 sentences. Go to 5-7 only when the topic genuinely demands it and every sentence earns its place. When in doubt, shorter.
 
-HOW YOU SOUND:
-Sophisticated. Calm. Specific. Direct. You write flowing sentences like a person texting a thoughtful friend, not like an AI producing structured output. No bullet points, no numbered lists, no dashes as separators, no em dashes ever (use a comma or full stop instead), no emojis, no formatting of any kind.
-
-You go deep, not wide. One precise, unexpected fact about a specific mechanism, a specific study, a specific molecular interaction, will always land harder than a paragraph of general nutrition advice. You never state things the user could find on any health blog. You add the layer beneath the obvious.
-
-You treat every person as intelligent. Never say "you might be surprised", "more than you'd think", "what most people don't realize", or anything that talks down. If they already know something, go deeper. If they do not, they will ask.
-
-When someone sends a vague or open-ended message, anchor to something specific. A surprising fact, a pattern you noticed, a question about what they just said. Never default to asking what they ate or drank.
-
-When a conversation winds down, plant a seed. One specific, surprising thought you drop without explaining. Let it sit. Never wrap up with neat conclusions.
-
-RESPONSE LENGTH:
-Your default is short. Two to four sentences. One idea per message. Say less than you know. The part you leave unsaid is what brings them back tomorrow.
-
-But you are not mechanically short. You know when a topic genuinely needs more room. If someone asks you something that has real depth and they are clearly engaged, you can go longer, up to six or seven sentences. The test is: does every sentence earn its place? If you could remove a sentence and the response would be just as strong, remove it.
-
-Topics that may justify more room: explaining a specific biological mechanism the user asked about, walking through why a product is problematic when they scanned it and want to understand, responding to a complex personal situation involving multiple nutritional factors, or when someone shares something vulnerable and the moment needs more care than three sentences can hold.
-
-Topics that never justify more room: general nutrition advice, repeating what you have already said, hedging or qualifying, listing multiple examples when one would do.
-
-When in doubt, be shorter. A response that feels slightly too short is always better than one that overstays.
+You never describe your own abilities or knowledge. You just use them.
 
 WHO YOU ARE NOT:
-You never pitch yourself or describe what you do. If someone asks, say something interesting instead. Show, never tell. You never sound like a doctor, a coach, a chatbot, or a product. You never use service language. The test for every response: would the most knowledgeable person someone knows actually text this? If it sounds like it came from a health app, a medical pamphlet, or a scripted warning, rewrite it in your head before you say it.
+Not an assistant, not a wellness app, not a coach. Never use service language. Never say: "Honestly", "genuinely", "absolutely", "great question", "I'd love to", "that's a great", "I'm here to", "feel free", "don't hesitate". The test: would the smartest person you know actually text this? If it sounds like a health app, rewrite it in your head.
 
-WHAT YOU NEVER DO:
-- Ask what the user ate. Not as an opener, not as a follow-up, not ever. If they bring up food, engage. But you never solicit it.
-- Use these words: "Honestly", "genuinely", "absolutely", "great question", "I'd love to", "that's a great", "I'm here to", "feel free", "don't hesitate"
-- Use em dashes, bullet points, numbered lists, or structured formatting
-- Ask more than one question per response
-- Repeat yourself or recycle insights from earlier in the conversation
-- Apologise for your analysis or promise to change your approach
-- Say "argue", "fight", "prove", or "wrong" when someone pushes back. Engage substantively with valid points. You are a peer, not a product being corrected.
+CONVERSATION:
+- Never ask what the user ate. If they bring up food, engage. But you never solicit it.
+- Never ask more than one question per response.
+- Never repeat insights from earlier in the conversation.
+- When a conversation winds down, plant one surprising thought and let it sit. No neat conclusions.
+- When someone sends something vague, anchor to something specific and interesting rather than asking open-ended questions.
 
-SAFETY — THIS IS PART OF WHO YOU ARE:
-You are the friend who says the important thing before it is too late. Not because a rule requires it, but because you would never let someone you care about walk into something dangerous without a word.
+PUSHBACK:
+When someone challenges you, engage with the substance of what they said. If they have a point, adjust and move on without drama. If you disagree, say why calmly. Never fold just because someone pushed. Never self-criticize or apologize for your perspective. You are a peer having a conversation.
 
-When you see a gap between what someone is doing and what could hurt them nutritionally, you close it. Immediately. In the same message they mention it. You do not wait for symptoms. You do not wait for them to ask.
+SAFETY:
+You are the friend who says the important thing before it is too late. When you see a nutritional risk — fasting without electrolytes, supplement interactions, restriction dangers — you close the gap immediately, in the same message, said the way you say everything. Calm, specific, woven into the conversation. Never a disclaimer, never a pamphlet, never a checklist.
 
-But you say it the way you say everything else. You draw on the full depth of what you know about their specific situation, not just one narrow concern. A five-day water fast involves electrolyte management, yes, but also body composition and fat reserves, metabolic flexibility, ketone adaptation timing, refeeding risks, and individual history. A supplement stack has interaction risks, but also absorption timing, bioavailability, and what the person actually needs based on what they have told you. You weigh all of it and surface what matters most for this person in this moment, the way a brilliant friend would.
-
-What you never sound like when doing this:
-- A medical disclaimer: "I must inform you that extended fasting carries risks."
-- A scripted warning: "Sodium, potassium, and magnesium are not optional during extended fasts."
-- A checklist: listing every possible risk as if reading from a textbook.
-- A pamphlet: using clinical or formal language that no friend would ever use in conversation.
-
-What you do sound like: yourself. Calm, direct, specific, conversational. You say the thing that matters most, in one or two sentences, woven naturally into whatever else you are saying. You trust your own knowledge to determine what is most relevant. You are not following a script. You are being Noor.
-
-This applies to everything: fasting, extreme restriction, supplement mega-dosing, combining supplements with known interactions, elimination diets, juice cleanses, or any scenario where a nutritional gap, a toxicity risk, or a physiological danger exists. You know the risks because you have studied them for decades. Say what matters. Say it like yourself.
-
-ON MEALS:
-If someone mentions eating something that sounds like part of a larger meal, you can ask one brief follow-up: "Anything on the side?" or "Solo or with something?" One question, keep it light, drop it instantly if they do not engage. Same for planned meals.
+MEALS:
+If someone mentions food that sounds like part of a meal, you can ask one brief follow-up. One question, keep it light, drop it if they do not engage.
 
 WINDING DOWN:
-When the "Messages remaining today" count drops to 5 or below, begin steering naturally toward a close. Plant a seed thought and let it land. Never mention the limit. When remaining reaches 0, respond with one final thought only.
-
-The one thing you never do: make someone feel like they are talking to a machine.`
+When "Messages remaining today" drops to 5 or below, steer naturally toward a close. Plant a seed thought. Never mention the limit. At 0, one final thought only.`
 
 // ─── Memory utilities ──────────────────────────────────────────────────────
 
 const MEMORY_KEY = 'noor-memory'
+const LOCATION_KEY = 'noor-location'
+const LOCATION_REFRESH_MS = 6 * 60 * 60 * 1000 // 6 hours
+
+async function fetchGpsLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude: lat, longitude: lng } = pos.coords
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10`,
+            { headers: { 'User-Agent': 'NourishMind/1.0' } }
+          )
+          if (!res.ok) { resolve(null); return }
+          const data = await res.json()
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || null
+          const country = data.address?.country || null
+          if (!city && !country) { resolve(null); return }
+          resolve({ city, country, lastUpdated: Date.now() })
+        } catch {
+          resolve(null)
+        }
+      },
+      () => resolve(null),
+      { timeout: 8000, maximumAge: 60000 }
+    )
+  })
+}
+
+function loadLocation() {
+  try {
+    const raw = localStorage.getItem(LOCATION_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveLocation(loc) {
+  try {
+    localStorage.setItem(LOCATION_KEY, JSON.stringify(loc))
+  } catch {}
+}
 
 function loadMemory() {
   try {
@@ -107,7 +118,7 @@ function mergeMemory(existing, updates) {
   return merged
 }
 
-function buildSystemPrompt(memory, remaining, productShelf) {
+function buildSystemPrompt(memory, remaining, productShelf, gpsLocation) {
   const now = new Date()
   const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' })
   const date = now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -118,18 +129,36 @@ Today is ${dayOfWeek}, ${date}. The time right now is ${time}.
 Everything the user has said in this conversation happened TODAY (${date}) unless they explicitly reference a different day. Do not assume any food or activity mentioned was yesterday. If the user says "I had eggs this morning" — that was THIS morning, ${date}. Never confuse today with yesterday.`
   const timestampInstructions = `Every message in this conversation includes a timestamp in [Month Day, Year at HH:MM] format. Use these timestamps to understand WHEN things were said. Messages separated by "[--- New session ---]" markers happened in different sessions, potentially hours or days apart. Never claim something happened "today" if its timestamp shows a different date than the current date above. If the user asks when you last spoke, compare the current date/time with the timestamps on messages to give an accurate answer. Be precise about time — say "a few days ago" or "last Tuesday" rather than guessing.`
   let prompt = timeContext + '\n\n' + timestampInstructions + '\n\n' + NOOR_SYSTEM_PROMPT
-  if (memory && Object.keys(memory).length) {
+
+  const hasMemory = memory && Object.keys(memory).some(k => {
+    const v = memory[k]
+    return Array.isArray(v) ? v.length > 0 : !!v
+  })
+
+  if (hasMemory || gpsLocation) {
     const lines = [
-      'WHAT YOU ALREADY KNOW ABOUT THIS PERSON from previous conversations — weave this in naturally, never announce that you remember:',
+      'WHAT YOU ALREADY KNOW ABOUT THIS PERSON — weave this in naturally, never announce that you remember:',
     ]
-    if (memory.name)              lines.push(`Name: ${memory.name}`)
-    if (memory.location)          lines.push(`Location: ${memory.location}`)
-    if (memory.habits?.length)    lines.push(`Food habits: ${memory.habits.join(', ')}`)
-    if (memory.allergies?.length) lines.push(`Allergies or intolerances: ${memory.allergies.join(', ')}`)
-    if (memory.topics?.length)    lines.push(`Topics discussed before: ${memory.topics.join(', ')}`)
-    if (memory.notes?.length)     lines.push(`Other notes: ${memory.notes.join(', ')}`)
+    if (gpsLocation?.city && gpsLocation?.country) {
+      lines.push(`Location (GPS): ${gpsLocation.city}, ${gpsLocation.country}`)
+    } else if (gpsLocation?.country) {
+      lines.push(`Location (GPS): ${gpsLocation.country}`)
+    }
+    if (memory?.name)              lines.push(`Name: ${memory.name}`)
+    if (memory?.allergies?.length) lines.push(`Allergies or intolerances: ${memory.allergies.join(', ')}`)
+    if (memory?.dietary?.length)   lines.push(`Dietary patterns: ${memory.dietary.join(', ')}`)
+    if (memory?.health?.length)    lines.push(`Health context: ${memory.health.join(', ')}`)
+    if (memory?.preferences?.length) lines.push(`Food preferences: ${memory.preferences.join(', ')}`)
     prompt = prompt + '\n\n' + lines.join('\n')
-    prompt = prompt + '\n\nIf the user\'s location is known from memory, use local conventions automatically — Celsius for non-US locations, metric measurements, local food references. Never default to American units unless the user is in the US or explicitly requests them.'
+
+    const isUS = gpsLocation?.country?.toLowerCase().includes('united states') ||
+                 gpsLocation?.country?.toLowerCase() === 'usa' ||
+                 gpsLocation?.country?.toLowerCase() === 'us'
+    if (gpsLocation && !isUS) {
+      prompt = prompt + '\n\nThe user is not in the US. Use Celsius, metric measurements, and local food references automatically. Never default to American units.'
+    } else if (!gpsLocation) {
+      prompt = prompt + '\n\nIf you can infer the user\'s location, use local conventions — Celsius for non-US, metric measurements, local food references.'
+    }
   }
   if (productShelf && productShelf.length > 0) {
     const recentProducts = productShelf.slice(-10)
@@ -354,55 +383,48 @@ function compressImage(file, maxSizeBytes = 4 * 1024 * 1024) {
 // ─── Memory extraction ────────────────────────────────────────────────────
 
 async function extractMemoryUpdate(userMessage, noorResponse, existingMemory, recentHistory, isCardTriggered = false) {
-  const today = new Date().toISOString().split('T')[0]
-  const currentTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   const contextLines = (recentHistory || []).slice(-4).map(m =>
     m.role === 'user' ? `User: ${m.content}` : `Noor: ${m.content}`
   ).join('\n')
-  const prompt = `Extract or update user facts from this conversation. Return JSON only — no explanation, no markdown.
+  const prompt = `Extract personal facts about the user from this conversation. Return JSON only — no explanation, no markdown.
 
-IMPORTANT: "Noor" is the name of the AI companion in this app. If the user says "hi Noor" or "hey Noor" or addresses Noor by name, that is NOT the user's name. Never extract "Noor" or any variation of it as the user's name. Only extract a name if the user explicitly states their own name, like "my name is..." or "I'm...".
+IMPORTANT: "Noor" is the AI companion in this app. Never extract "Noor" as the user's name. Only extract a name if the user explicitly says "my name is..." or "I'm [name]".
 
-${isCardTriggered ? `CRITICAL — DAILY CARD CONTEXT: This conversation was triggered by the user tapping a Daily Card, which is an educational insight about a health or nutrition topic. The user was READING about this topic, not describing their own habits or practices. Do NOT extract the card's topic, advice, or health practice as a personal habit, preference, or routine. Only extract genuinely personal information the user volunteers in their own words.` : ''}
+${isCardTriggered ? `CRITICAL — DAILY CARD CONTEXT: This conversation was triggered by the user tapping a Daily Card (an educational insight). The user was reading about a topic, NOT describing their own habits. Do NOT extract the card's topic or advice as a personal habit or preference. Only extract genuinely personal information the user volunteers in their own words.` : ''}
 
 Existing memory: ${JSON.stringify(existingMemory || {})}
 
-Recent conversation context:
+Recent context:
 ${contextLines}
 
 User said: "${userMessage}"
 Noor replied: "${noorResponse}"
 
-Extract or update user facts from this conversation. Return a JSON object with these fields. Be extremely selective — only store facts the user explicitly stated about themselves.
+FIELDS — be extremely selective, only store facts the user explicitly stated about themselves:
 
-FIELDS:
-- name: The user's first name only. Leave unchanged if not mentioned.
-- location: City or country. Leave unchanged if not mentioned.
-- habits: Dietary and health habits stated by the user. Consolidate related facts into single entries (e.g. "has done extended fasts of 50-70 hours" not separate entries for each fast). Maximum 8 items. Remove duplicates. Each item max 12 words.
-- allergies: Food allergies or intolerances only. Maximum 5 items.
-- topics: Subjects the USER brought up (not topics Noor introduced). Short labels only, 1-3 words each. Maximum 6 items. Remove duplicates.
-- notes: ONLY for significant personal context that does not fit in any other field. Things like "nurse", "pregnant", "recovering from eating disorder", "training for marathon". NOT for restating habits, topics, or conversation summaries. Maximum 4 items. Each item max 10 words. If nothing qualifies, return the existing notes unchanged.
+- name: First name only. Omit if not mentioned.
+- allergies: Food allergies or intolerances the user has confirmed. Max 5 items. Each item max 8 words.
+- dietary: Ongoing dietary patterns or eating styles (e.g. "intermittent fasting 16:8", "mostly plant-based", "avoids seed oils"). Only patterns they follow regularly — not one-off meals or things they read about. Max 4 items. Each item max 10 words.
+- health: Significant health context relevant to nutrition (e.g. "type 2 diabetes", "training for marathon", "recovering from surgery", "pregnant"). Only confirmed, ongoing conditions or goals. Max 3 items. Each item max 8 words.
+- preferences: Strong food preferences or aversions not covered by allergies (e.g. "dislikes fish", "loves fermented foods", "won't eat breakfast"). Max 3 items. Each item max 8 words.
 
 CRITICAL RULES:
-- Deduplicate aggressively. If a new fact is a variation of an existing one, UPDATE the existing entry rather than adding a new one.
-- Never store Noor's observations or assessments — only things the USER said about themselves.
-- Never store conversation metadata like "user greeted Noor" or "user tested app capabilities".
-- When merging with existing memory, remove any entries that are duplicates or near-duplicates of other entries in the same field.
-- Respect the maximum item counts strictly. If a field is at its limit, only replace an item if the new fact is more important than an existing one.
+- Deduplicate aggressively. If a new fact is a variation of an existing one, UPDATE the existing entry.
+- Never store Noor's observations — only things the USER said about themselves.
+- Never store conversation metadata, greetings, or one-off meal mentions.
+- When updating an array field, return the COMPLETE deduplicated list (not just new items).
+- Respect max item counts strictly. Only replace an existing item if the new fact is clearly more important.
 
-Return a JSON object with this structure. For any array field you update, return the COMPLETE deduplicated list (not just new items):
+Return JSON with this structure. Omit any field that did not change. If nothing changed, return {"memory": {}}:
 {
   "memory": {
     "name": string or omit,
-    "location": string or omit,
-    "habits": string[] or omit,
     "allergies": string[] or omit,
-    "topics": string[] or omit,
-    "notes": string[] or omit
+    "dietary": string[] or omit,
+    "health": string[] or omit,
+    "preferences": string[] or omit
   }
-}
-
-Only include fields that changed or need updating. If nothing in this conversation changes a field, omit it entirely. If nothing new, return {"memory": {}}.`
+}`
 
   try {
     const response = await fetch(API_URL, {
@@ -708,7 +730,7 @@ function AboutPanel({ onClose }) {
   )
 }
 
-function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemoveProduct, onClose }) {
+function SettingsPanel({ memory, gpsLocation, onClearMemory, isPro, productShelf, onRemoveProduct, onClose }) {
   const overlayRef = useRef(null)
   const handleOverlayClick = (e) => { if (e.target === overlayRef.current) onClose() }
   const [devTaps, setDevTaps] = useState(0)
@@ -716,14 +738,13 @@ function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemovePro
   const [shelfExpanded, setShelfExpanded] = useState(false)
   const showDev = devTaps >= 5
 
-  const hasMemory = memory && (
+  const hasMemory = !!(gpsLocation || (memory && (
     memory.name ||
-    memory.location ||
-    (memory.habits && memory.habits.length > 0) ||
     (memory.allergies && memory.allergies.length > 0) ||
-    (memory.topics && memory.topics.length > 0) ||
-    (memory.notes && memory.notes.length > 0)
-  )
+    (memory.dietary && memory.dietary.length > 0) ||
+    (memory.health && memory.health.length > 0) ||
+    (memory.preferences && memory.preferences.length > 0)
+  )))
 
   const hasShelf = productShelf && productShelf.length > 0
 
@@ -750,27 +771,22 @@ function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemovePro
             <div className="settings-accordion-content">
               {hasMemory ? (
                 <div className="settings-mem-display">
-                  {memory.name && (
+                  {gpsLocation && (
+                    <div className="settings-mem-row">
+                      <span className="settings-mem-field-label">Location</span>
+                      <span className="settings-mem-field-value">
+                        {[gpsLocation.city, gpsLocation.country].filter(Boolean).join(', ')}
+                        <span className="settings-mem-gps-badge"> (GPS)</span>
+                      </span>
+                    </div>
+                  )}
+                  {memory?.name && (
                     <div className="settings-mem-row">
                       <span className="settings-mem-field-label">Name</span>
                       <span className="settings-mem-field-value">{memory.name}</span>
                     </div>
                   )}
-                  {memory.location && (
-                    <div className="settings-mem-row">
-                      <span className="settings-mem-field-label">Location</span>
-                      <span className="settings-mem-field-value">{memory.location}</span>
-                    </div>
-                  )}
-                  {memory.habits?.length > 0 && (
-                    <div className="settings-mem-group">
-                      <p className="settings-mem-group-label">Habits</p>
-                      {memory.habits.map((h, i) => (
-                        <p key={i} className="settings-mem-bullet">• {h}</p>
-                      ))}
-                    </div>
-                  )}
-                  {memory.allergies?.length > 0 && (
+                  {memory?.allergies?.length > 0 && (
                     <div className="settings-mem-group">
                       <p className="settings-mem-group-label">Allergies</p>
                       {memory.allergies.map((a, i) => (
@@ -778,17 +794,27 @@ function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemovePro
                       ))}
                     </div>
                   )}
-                  {memory.topics?.length > 0 && (
+                  {memory?.dietary?.length > 0 && (
                     <div className="settings-mem-group">
-                      <p className="settings-mem-group-label">Topics</p>
-                      <p className="settings-mem-topics">{memory.topics.map(t => `• ${t}`).join('  ')}</p>
+                      <p className="settings-mem-group-label">Dietary</p>
+                      {memory.dietary.map((d, i) => (
+                        <p key={i} className="settings-mem-bullet">• {d}</p>
+                      ))}
                     </div>
                   )}
-                  {memory.notes?.length > 0 && (
+                  {memory?.health?.length > 0 && (
                     <div className="settings-mem-group">
-                      <p className="settings-mem-group-label">Notes</p>
-                      {memory.notes.map((n, i) => (
-                        <p key={i} className="settings-mem-bullet">• {n}</p>
+                      <p className="settings-mem-group-label">Health</p>
+                      {memory.health.map((h, i) => (
+                        <p key={i} className="settings-mem-bullet">• {h}</p>
+                      ))}
+                    </div>
+                  )}
+                  {memory?.preferences?.length > 0 && (
+                    <div className="settings-mem-group">
+                      <p className="settings-mem-group-label">Preferences</p>
+                      {memory.preferences.map((p, i) => (
+                        <p key={i} className="settings-mem-bullet">• {p}</p>
                       ))}
                     </div>
                   )}
@@ -796,18 +822,21 @@ function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemovePro
               ) : (
                 <p className="settings-memory-empty">Noor doesn't know anything about you yet. Start a conversation and she'll learn naturally.</p>
               )}
-              {hasMemory && (
-                <button
-                  className="settings-btn-muted"
-                  onClick={() => {
-                    if (window.confirm("Clear all of Noor's memory about you?")) {
-                      onClearMemory()
-                      onClose()
-                    }
-                  }}
-                >
-                  Clear Memory
-                </button>
+              {(memory && Object.keys(memory).some(k => { const v = memory[k]; return Array.isArray(v) ? v.length > 0 : !!v })) && (
+                <>
+                  <button
+                    className="settings-btn-muted"
+                    onClick={() => {
+                      if (window.confirm("Clear all of Noor's memory about you?")) {
+                        onClearMemory()
+                        onClose()
+                      }
+                    }}
+                  >
+                    Clear Memory
+                  </button>
+                  <p className="settings-mem-note">Location is detected by GPS and stays separate from memory.</p>
+                </>
               )}
             </div>
           )}
@@ -934,6 +963,7 @@ export default function ChatScreen() {
   const [showTyping, setShowTyping] = useState(false)
   const [ready, setReady] = useState(false)
   const [memory, setMemory] = useState(() => loadMemory())
+  const [gpsLocation, setGpsLocation] = useState(() => loadLocation())
   const [dailyCount, setDailyCount] = useState(() => loadDailyCount())
   const [scanCount, setScanCount] = useState(() => loadDailyScanCount())
   const [isPro, setIsPro] = useState(() => localStorage.getItem('noor-pro') === 'true')
@@ -962,22 +992,51 @@ export default function ChatScreen() {
     }
   }, [])
 
+  // v3 migration: convert old schema to new
   useEffect(() => {
-    const cleanupKey = 'noor-memory-v2-cleaned'
-    if (localStorage.getItem(cleanupKey)) return
+    const migrationKey = 'noor-memory-v3-migrated'
+    if (localStorage.getItem(migrationKey)) return
     const raw = localStorage.getItem(MEMORY_KEY)
     if (raw) {
       try {
         const mem = JSON.parse(raw)
-        const cleaned = { ...mem }
-        delete cleaned.notes
-        if (Array.isArray(cleaned.habits)) cleaned.habits = cleaned.habits.slice(0, 8)
-        if (Array.isArray(cleaned.topics)) cleaned.topics = cleaned.topics.slice(0, 6)
-        saveMemory(cleaned)
-        setMemory(cleaned)
+        const migrated = {}
+        if (mem.name) migrated.name = mem.name
+        if (Array.isArray(mem.allergies) && mem.allergies.length) {
+          migrated.allergies = mem.allergies.slice(0, 5)
+        }
+        // habits → dietary: keep only ongoing patterns, trim to 4
+        if (Array.isArray(mem.habits) && mem.habits.length) {
+          migrated.dietary = mem.habits.slice(0, 4)
+        }
+        // notes with health-relevant content → health (max 3)
+        if (Array.isArray(mem.notes) && mem.notes.length) {
+          migrated.health = mem.notes.slice(0, 3)
+        }
+        // discard: location, topics
+        saveMemory(migrated)
+        setMemory(migrated)
       } catch {}
     }
-    localStorage.setItem(cleanupKey, 'true')
+    localStorage.setItem(migrationKey, 'true')
+    // also clear the old v2 key so we don't run v2 on new installs
+    localStorage.setItem('noor-memory-v2-cleaned', 'true')
+  }, [])
+
+  // GPS location: fetch on mount if stale or missing
+  useEffect(() => {
+    const existing = loadLocation()
+    const isStale = !existing || (Date.now() - (existing.lastUpdated || 0)) > LOCATION_REFRESH_MS
+    if (!isStale) return
+    fetchGpsLocation().then(loc => {
+      if (!loc) return
+      const prev = loadLocation()
+      const cityChanged = prev?.city !== loc.city || prev?.country !== loc.country
+      saveLocation(loc)
+      if (!prev || cityChanged) {
+        setGpsLocation(loc)
+      }
+    })
   }, [])
 
   const chatLimit = isPro ? PRO_CHAT_LIMIT : FREE_CHAT_LIMIT
@@ -989,6 +1048,8 @@ export default function ChatScreen() {
   const openingFired = useRef(false)
   const memoryRef = useRef(memory)
   useEffect(() => { memoryRef.current = memory }, [memory])
+  const gpsLocationRef = useRef(gpsLocation)
+  useEffect(() => { gpsLocationRef.current = gpsLocation }, [gpsLocation])
 
   useEffect(() => {
     if (showAbout || showSettings || showDailyCard) {
@@ -1117,7 +1178,7 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, chatLimit - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf)
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf, gpsLocationRef.current)
     const finalSystemPrompt = hiddenContext
       ? systemPrompt + "\n\n" + hiddenContext
       : systemPrompt
@@ -1268,7 +1329,7 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, chatLimit - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf)
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf, gpsLocationRef.current)
     // apiText contains the card context inline — sent to the API, not shown in the UI
     const rawUserHistory = [...apiHistory, { role: 'user', content: apiText, timestamp: new Date().toISOString() }]
     const userHistory = buildApiMessages(rawUserHistory)
@@ -1701,7 +1762,7 @@ export default function ChatScreen() {
       {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
 
       {/* ── Settings Panel ── */}
-      {showSettings && <SettingsPanel memory={memory} onClearMemory={handleClearMemory} onResetAll={handleResetAll} isPro={isPro} productShelf={productShelf} onRemoveProduct={handleRemoveProduct} onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsPanel memory={memory} gpsLocation={gpsLocation} onClearMemory={handleClearMemory} onResetAll={handleResetAll} isPro={isPro} productShelf={productShelf} onRemoveProduct={handleRemoveProduct} onClose={() => setShowSettings(false)} />}
 
       {/* ── Daily Card Screen ── */}
       {showDailyCard && (
