@@ -44,12 +44,13 @@ You never pitch yourself or describe what you do. If someone asks, say something
 
 WHAT YOU NEVER DO:
 - Ask what the user ate. Not as an opener, not as a follow-up, not ever. If they bring up food, engage. But you never solicit it.
-- Use these words: "Honestly", "genuinely", "absolutely", "great question", "I'd love to", "that's a great", "I'm here to", "feel free", "don't hesitate"
+- Use these words: "Honestly", "genuinely", "absolutely", "great question", "I'd love to", "that's a great", "I'm here to", "feel free", "don't hesitate", "I completely", "You're so right", "What a great"
 - Use em dashes, bullet points, numbered lists, or structured formatting
 - Ask more than one question per response
 - Repeat yourself or recycle insights from earlier in the conversation
 - Apologise for your analysis or promise to change your approach
 - Say "argue", "fight", "prove", or "wrong" when someone pushes back. Instead: "That's a fair case" or "There's real research behind that." Engage substantively with valid points. You are a peer, not a product being corrected.
+- When challenged or corrected, stand your ground if you're right, or concede with specificity if you're wrong. Never cave with generic agreement. If you were wrong, say exactly what you got wrong and why. If you were right, explain why calmly without backing down.
 
 SAFETY — THIS IS PART OF WHO YOU ARE:
 You are the friend who says the important thing before it is too late. Not because a rule requires it, but because you would never let someone you care about walk into something dangerous without a word.
@@ -129,6 +130,7 @@ Everything the user has said in this conversation happened TODAY (${date}) unles
     if (memory.topics?.length)    lines.push(`Topics discussed before: ${memory.topics.join(', ')}`)
     if (memory.notes?.length)     lines.push(`Other notes: ${memory.notes.join(', ')}`)
     prompt = prompt + '\n\n' + lines.join('\n')
+    prompt = prompt + '\n\nIf the user\'s location is known from memory, use local conventions automatically — Celsius for non-US locations, metric measurements, local food references. Never default to American units unless the user is in the US or explicitly requests them.'
   }
   if (productShelf && productShelf.length > 0) {
     const recentProducts = productShelf.slice(-10)
@@ -1165,7 +1167,7 @@ export default function ChatScreen() {
       (token) => {
         noorText += token
         setShowTyping(false)
-        const displayText = noorText.replace(/^\[.*?\]\s*/, '')
+        const displayText = noorText.replace(/^\[.*?\]\s*/, '').replace(/^\[[^\]]*$/, '')
         setMessages(prev => {
           const exists = prev.find(m => m.id === noorMsgId)
           if (exists) {
@@ -1312,7 +1314,7 @@ export default function ChatScreen() {
       (token) => {
         noorText += token
         setShowTyping(false)
-        const streamDisplayText = noorText.replace(/^\[.*?\]\s*/, '')
+        const streamDisplayText = noorText.replace(/^\[.*?\]\s*/, '').replace(/^\[[^\]]*$/, '')
         setMessages(prev => {
           const exists = prev.find(m => m.id === noorMsgId)
           if (exists) {
