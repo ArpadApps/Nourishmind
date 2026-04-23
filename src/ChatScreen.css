@@ -1269,3 +1269,87 @@
   text-align: right;
   margin: 4px 0 0;
 }
+
+/* ─── Settings accordion toggle ──────────────────────────────────── */
+.settings-section-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.settings-section-toggle .settings-section-title {
+  margin-bottom: 0;
+}
+
+.settings-accordion-chevron {
+  font-size: 14px;
+  color: #706560;
+  user-select: none;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.settings-accordion-content {
+  margin-top: 14px;
+}
+
+/* ─── Settings memory formatted display ─────────────────────────── */
+.settings-mem-display {
+  margin-bottom: 8px;
+}
+
+.settings-mem-row {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 8px;
+  align-items: baseline;
+}
+
+.settings-mem-field-label {
+  font-family: Georgia, serif;
+  font-size: 12px;
+  color: #a09585;
+  min-width: 68px;
+  flex-shrink: 0;
+}
+
+.settings-mem-field-value {
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: #e8ddd0;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.settings-mem-group {
+  margin-bottom: 12px;
+}
+
+.settings-mem-group-label {
+  font-family: Georgia, serif;
+  font-size: 12px;
+  color: #a09585;
+  margin: 0 0 4px;
+}
+
+.settings-mem-bullet {
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: #e8ddd0;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.settings-mem-topics {
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: #e8ddd0;
+  line-height: 1.65;
+  margin: 0;
+}

@@ -99,8 +99,7 @@ function mergeMemory(existing, updates) {
   const merged = { ...(existing || {}) }
   for (const [key, val] of Object.entries(updates)) {
     if (Array.isArray(val) && val.length) {
-      const prev = Array.isArray(merged[key]) ? merged[key] : []
-      merged[key] = [...new Set([...prev, ...val])]
+      merged[key] = val
     } else if (val && !Array.isArray(val)) {
       merged[key] = val
     }
@@ -359,15 +358,11 @@ async function extractMemoryUpdate(userMessage, noorResponse, existingMemory, re
   const contextLines = (recentHistory || []).slice(-4).map(m =>
     m.role === 'user' ? `User: ${m.content}` : `Noor: ${m.content}`
   ).join('\n')
-  const prompt = `Analyse this conversation exchange and return JSON only — no explanation, no markdown.
-
-Extract any personal information about the user.
+  const prompt = `Extract or update user facts from this conversation. Return JSON only — no explanation, no markdown.
 
 IMPORTANT: "Noor" is the name of the AI companion in this app. If the user says "hi Noor" or "hey Noor" or addresses Noor by name, that is NOT the user's name. Never extract "Noor" or any variation of it as the user's name. Only extract a name if the user explicitly states their own name, like "my name is..." or "I'm...".
 
-${isCardTriggered ? `
-CRITICAL — DAILY CARD CONTEXT: This conversation was triggered by the user tapping a Daily Card, which is an educational insight about a health or nutrition topic. The user was READING about this topic, not describing their own habits or practices. Do NOT extract the card's topic, advice, or health practice as a personal habit, preference, or routine. Only extract genuinely personal information the user volunteers in their own words, such as "I already do that" or "I tried this last week."
-` : ''}
+${isCardTriggered ? `CRITICAL — DAILY CARD CONTEXT: This conversation was triggered by the user tapping a Daily Card, which is an educational insight about a health or nutrition topic. The user was READING about this topic, not describing their own habits or practices. Do NOT extract the card's topic, advice, or health practice as a personal habit, preference, or routine. Only extract genuinely personal information the user volunteers in their own words.` : ''}
 
 Existing memory: ${JSON.stringify(existingMemory || {})}
 
@@ -377,7 +372,24 @@ ${contextLines}
 User said: "${userMessage}"
 Noor replied: "${noorResponse}"
 
-Return a JSON object with this structure:
+Extract or update user facts from this conversation. Return a JSON object with these fields. Be extremely selective — only store facts the user explicitly stated about themselves.
+
+FIELDS:
+- name: The user's first name only. Leave unchanged if not mentioned.
+- location: City or country. Leave unchanged if not mentioned.
+- habits: Dietary and health habits stated by the user. Consolidate related facts into single entries (e.g. "has done extended fasts of 50-70 hours" not separate entries for each fast). Maximum 8 items. Remove duplicates. Each item max 12 words.
+- allergies: Food allergies or intolerances only. Maximum 5 items.
+- topics: Subjects the USER brought up (not topics Noor introduced). Short labels only, 1-3 words each. Maximum 6 items. Remove duplicates.
+- notes: ONLY for significant personal context that does not fit in any other field. Things like "nurse", "pregnant", "recovering from eating disorder", "training for marathon". NOT for restating habits, topics, or conversation summaries. Maximum 4 items. Each item max 10 words. If nothing qualifies, return the existing notes unchanged.
+
+CRITICAL RULES:
+- Deduplicate aggressively. If a new fact is a variation of an existing one, UPDATE the existing entry rather than adding a new one.
+- Never store Noor's observations or assessments — only things the USER said about themselves.
+- Never store conversation metadata like "user greeted Noor" or "user tested app capabilities".
+- When merging with existing memory, remove any entries that are duplicates or near-duplicates of other entries in the same field.
+- Respect the maximum item counts strictly. If a field is at its limit, only replace an item if the new fact is more important than an existing one.
+
+Return a JSON object with this structure. For any array field you update, return the COMPLETE deduplicated list (not just new items):
 {
   "memory": {
     "name": string or omit,
@@ -389,23 +401,7 @@ Return a JSON object with this structure:
   }
 }
 
-Include only NEW information not already in existing memory. For array fields include only new items. If nothing new, return {}.
-
-CRITICAL RULES FOR TOPICS:
-- Only record a topic if the USER brought it up, asked about it, or expressed personal interest in it.
-- Do NOT record topics that Noor introduced or explained unless the user specifically engaged beyond a one-word reply.
-- Maximum 2 new topic entries per extraction. Pick the 2 the user showed most interest in.
-- Use short labels: "gut health", "seed oils", "fasting". Not full sentences.
-- If a topic is already in existing memory, do not add it again even with different wording.
-
-CRITICAL RULES FOR HABITS:
-- Only record habits the user explicitly stated they do, not things Noor suggested.
-- Record the user's exact words. Do not interpret or expand.
-- "I walk after meals" becomes "walks after meals", not "practices post-meal walking for glucose regulation".
-
-CRITICAL RULES FOR NOTES:
-- Notes are for genuinely personal facts that do not fit other categories.
-- Do not use notes as overflow for topics.`
+Only include fields that changed or need updating. If nothing in this conversation changes a field, omit it entirely. If nothing new, return {"memory": {}}.`
 
   try {
     const response = await fetch(API_URL, {
@@ -715,6 +711,8 @@ function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemovePro
   const overlayRef = useRef(null)
   const handleOverlayClick = (e) => { if (e.target === overlayRef.current) onClose() }
   const [devTaps, setDevTaps] = useState(0)
+  const [memoryExpanded, setMemoryExpanded] = useState(false)
+  const [shelfExpanded, setShelfExpanded] = useState(false)
   const showDev = devTaps >= 5
 
   const hasMemory = memory && (
@@ -739,50 +737,120 @@ function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemovePro
         <div className="journal-handle" />
 
         <div className="settings-section">
-          <h3 className="settings-section-title">What Noor Remembers</h3>
-          {hasMemory ? (
-            <div className="settings-memory-fields">
-              {memory.name && <p className="settings-memory-line">Name: {memory.name}</p>}
-              {memory.location && <p className="settings-memory-line">Location: {memory.location}</p>}
-              {memory.habits && memory.habits.length > 0 && <p className="settings-memory-line">Habits: {memory.habits.join(', ')}</p>}
-              {memory.allergies && memory.allergies.length > 0 && <p className="settings-memory-line">Allergies: {memory.allergies.join(', ')}</p>}
-              {memory.topics && memory.topics.length > 0 && <p className="settings-memory-line">Topics: {memory.topics.join(', ')}</p>}
-              {memory.notes && memory.notes.length > 0 && <p className="settings-memory-line">Notes: {memory.notes.join(', ')}</p>}
+          <button
+            className="settings-section-toggle"
+            onClick={() => setMemoryExpanded(prev => !prev)}
+            aria-expanded={memoryExpanded}
+          >
+            <h3 className="settings-section-title">What Noor Remembers</h3>
+            <span className="settings-accordion-chevron">{memoryExpanded ? '▾' : '▸'}</span>
+          </button>
+          {memoryExpanded && (
+            <div className="settings-accordion-content">
+              {hasMemory ? (
+                <div className="settings-mem-display">
+                  {memory.name && (
+                    <div className="settings-mem-row">
+                      <span className="settings-mem-field-label">Name</span>
+                      <span className="settings-mem-field-value">{memory.name}</span>
+                    </div>
+                  )}
+                  {memory.location && (
+                    <div className="settings-mem-row">
+                      <span className="settings-mem-field-label">Location</span>
+                      <span className="settings-mem-field-value">{memory.location}</span>
+                    </div>
+                  )}
+                  {memory.habits?.length > 0 && (
+                    <div className="settings-mem-group">
+                      <p className="settings-mem-group-label">Habits</p>
+                      {memory.habits.map((h, i) => (
+                        <p key={i} className="settings-mem-bullet">• {h}</p>
+                      ))}
+                    </div>
+                  )}
+                  {memory.allergies?.length > 0 && (
+                    <div className="settings-mem-group">
+                      <p className="settings-mem-group-label">Allergies</p>
+                      {memory.allergies.map((a, i) => (
+                        <p key={i} className="settings-mem-bullet">• {a}</p>
+                      ))}
+                    </div>
+                  )}
+                  {memory.topics?.length > 0 && (
+                    <div className="settings-mem-group">
+                      <p className="settings-mem-group-label">Topics</p>
+                      <p className="settings-mem-topics">{memory.topics.map(t => `• ${t}`).join('  ')}</p>
+                    </div>
+                  )}
+                  {memory.notes?.length > 0 && (
+                    <div className="settings-mem-group">
+                      <p className="settings-mem-group-label">Notes</p>
+                      {memory.notes.map((n, i) => (
+                        <p key={i} className="settings-mem-bullet">• {n}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="settings-memory-empty">Noor doesn't know anything about you yet. Start a conversation and she'll learn naturally.</p>
+              )}
+              {hasMemory && (
+                <button
+                  className="settings-btn-muted"
+                  onClick={() => {
+                    if (window.confirm("Clear all of Noor's memory about you?")) {
+                      onClearMemory()
+                      onClose()
+                    }
+                  }}
+                >
+                  Clear Memory
+                </button>
+              )}
             </div>
-          ) : (
-            <p className="settings-memory-empty">Noor doesn't know anything about you yet. Start a conversation and she'll learn naturally.</p>
           )}
-          {hasMemory && <button className="settings-btn-muted" onClick={() => { onClearMemory(); onClose() }}>Clear Memory</button>}
         </div>
 
         <div className="settings-section">
-          <h3 className="settings-section-title">Your Product Shelf</h3>
-          {hasShelf ? (
-            <>
-              <div className="shelf-list">
-                {productShelf.map(p => (
-                  <div key={p.id} className="shelf-item">
-                    <div className="shelf-item-info">
-                      <span className="shelf-item-name">{p.productName}</span>
-                      <span className="shelf-item-date">{formatDate(p.dateScanned)}</span>
-                    </div>
-                    <button
-                      className="shelf-remove-btn"
-                      onClick={() => onRemoveProduct(p.id)}
-                      aria-label={`Remove ${p.productName}`}
-                    >×</button>
+          <button
+            className="settings-section-toggle"
+            onClick={() => setShelfExpanded(prev => !prev)}
+            aria-expanded={shelfExpanded}
+          >
+            <h3 className="settings-section-title">Your Product Shelf</h3>
+            <span className="settings-accordion-chevron">{shelfExpanded ? '▾' : '▸'}</span>
+          </button>
+          {shelfExpanded && (
+            <div className="settings-accordion-content">
+              {hasShelf ? (
+                <>
+                  <div className="shelf-list">
+                    {productShelf.map(p => (
+                      <div key={p.id} className="shelf-item">
+                        <div className="shelf-item-info">
+                          <span className="shelf-item-name">{p.productName}</span>
+                          <span className="shelf-item-date">{formatDate(p.dateScanned)}</span>
+                        </div>
+                        <button
+                          className="shelf-remove-btn"
+                          onClick={() => onRemoveProduct(p.id)}
+                          aria-label={`Remove ${p.productName}`}
+                        >×</button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <p className="shelf-count">{productShelf.length} {productShelf.length === 1 ? 'product' : 'products'}</p>
-            </>
-          ) : !isPro ? (
-            <>
-              <p className="settings-memory-empty">Product Shelf is a Pro feature. Upgrade to keep and review every product you scan.</p>
-              <button className="settings-btn-upgrade">Upgrade to Pro — $7.99/month</button>
-            </>
-          ) : (
-            <p className="settings-memory-empty">Nothing on your shelf yet. Scan a product and tap "Taking it" to save it here.</p>
+                  <p className="shelf-count">{productShelf.length} {productShelf.length === 1 ? 'product' : 'products'}</p>
+                </>
+              ) : !isPro ? (
+                <>
+                  <p className="settings-memory-empty">Product Shelf is a Pro feature. Upgrade to keep and review every product you scan.</p>
+                  <button className="settings-btn-upgrade">Upgrade to Pro — $7.99/month</button>
+                </>
+              ) : (
+                <p className="settings-memory-empty">Nothing on your shelf yet. Scan a product and tap "Taking it" to save it here.</p>
+              )}
+            </div>
           )}
         </div>
 
@@ -807,7 +875,6 @@ function SettingsPanel({ memory, onClearMemory, isPro, productShelf, onRemovePro
         <div className="settings-section">
           <h3 className="settings-section-title">Legal</h3>
           <div className="settings-links">
-            {/* TODO: wire to in-app navigation when setScreen is available from App.jsx */}
             <button className="settings-link-btn" onClick={() => window.open('/terms', '_blank')}>Terms of Service</button>
             <button className="settings-link-btn" onClick={() => window.open('/privacy', '_blank')}>Privacy Policy</button>
           </div>
@@ -892,6 +959,24 @@ export default function ChatScreen() {
       localStorage.setItem('noor-mic-hint-version', '2')
       setShowMicHint(true)
     }
+  }, [])
+
+  useEffect(() => {
+    const cleanupKey = 'noor-memory-v2-cleaned'
+    if (localStorage.getItem(cleanupKey)) return
+    const raw = localStorage.getItem(MEMORY_KEY)
+    if (raw) {
+      try {
+        const mem = JSON.parse(raw)
+        const cleaned = { ...mem }
+        delete cleaned.notes
+        if (Array.isArray(cleaned.habits)) cleaned.habits = cleaned.habits.slice(0, 8)
+        if (Array.isArray(cleaned.topics)) cleaned.topics = cleaned.topics.slice(0, 6)
+        saveMemory(cleaned)
+        setMemory(cleaned)
+      } catch {}
+    }
+    localStorage.setItem(cleanupKey, 'true')
   }, [])
 
   const chatLimit = isPro ? PRO_CHAT_LIMIT : FREE_CHAT_LIMIT
