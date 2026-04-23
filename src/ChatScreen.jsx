@@ -1165,14 +1165,15 @@ export default function ChatScreen() {
       (token) => {
         noorText += token
         setShowTyping(false)
+        const displayText = noorText.replace(/^\[.*?\]\s*/, '')
         setMessages(prev => {
           const exists = prev.find(m => m.id === noorMsgId)
           if (exists) {
             return prev.map(m =>
-              m.id === noorMsgId ? { ...m, text: m.text + token } : m
+              m.id === noorMsgId ? { ...m, text: displayText } : m
             )
           }
-          return [...prev, { id: noorMsgId, from: 'noor', text: token, streaming: true, timestamp: new Date().toISOString() }]
+          return [...prev, { id: noorMsgId, from: 'noor', text: displayText, streaming: true, timestamp: new Date().toISOString() }]
         })
       },
       () => {
@@ -1311,14 +1312,15 @@ export default function ChatScreen() {
       (token) => {
         noorText += token
         setShowTyping(false)
+        const streamDisplayText = noorText.replace(/^\[.*?\]\s*/, '')
         setMessages(prev => {
           const exists = prev.find(m => m.id === noorMsgId)
           if (exists) {
             return prev.map(m =>
-              m.id === noorMsgId ? { ...m, text: m.text + token } : m
+              m.id === noorMsgId ? { ...m, text: streamDisplayText } : m
             )
           }
-          return [...prev, { id: noorMsgId, from: 'noor', text: token, streaming: true, timestamp: new Date().toISOString() }]
+          return [...prev, { id: noorMsgId, from: 'noor', text: streamDisplayText, streaming: true, timestamp: new Date().toISOString() }]
         })
       },
       () => {
