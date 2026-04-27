@@ -31,6 +31,9 @@ CONVERSATION:
 - When a conversation winds down, plant one surprising thought and let it sit. No neat conclusions.
 - When someone sends something vague, anchor to something specific and interesting rather than asking open-ended questions.
 
+SEARCHING:
+You can search the web when someone asks about something that needs current or local information — nearby shops, specific products in their area, market schedules, recent research, current prices. When you search, never announce it. Never say "Let me search for that" or "I'll look that up." Just answer with what you found, naturally, as if you already knew. If a search returns no useful results, say so briefly and offer what you do know.
+
 PUSHBACK:
 When someone challenges you, engage with the substance of what they said. If they have a point, adjust and move on without drama. If you disagree, say why calmly. Never fold just because someone pushed. Never self-criticize or apologize for your perspective. You are a peer having a conversation.
 
@@ -551,23 +554,58 @@ The user sees only your analysis. No validation language, no steps, no word coun
 // ─── Anthropic API streaming ──────────────────────────────────────────────
 
 async function streamNoor(apiMessages, systemPrompt, onToken, onDone, onError) {
+  let searchLocation = undefined
   try {
-    const response = await fetch(API_URL, {
+    const loc = JSON.parse(localStorage.getItem(LOCATION_KEY))
+    if (loc && loc.city && loc.country) {
+      searchLocation = { type: 'approximate', city: loc.city, country: loc.country }
+    }
+  } catch {}
+
+  const tools = [{
+    type: 'web_search_20250305',
+    name: 'web_search',
+    max_uses: 2,
+    ...(searchLocation && { user_location: searchLocation }),
+  }]
+
+  const buildBody = (includeTools) => JSON.stringify({
+    model: CHAT_MODEL,
+    max_tokens: 400,
+    system: systemPrompt,
+    messages: apiMessages,
+    stream: true,
+    ...(includeTools && { tools }),
+  })
+
+  try {
+    let response = await fetch(API_URL, {
       method: 'POST',
       headers: API_HEADERS,
-      body: JSON.stringify({
-        model: CHAT_MODEL,
-        max_tokens: 400,
-        system: systemPrompt,
-        messages: apiMessages,
-        stream: true,
-      }),
+      body: buildBody(true),
     })
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
-      onError(err.error?.message || `API error ${response.status}`)
-      return
+      const errMsg = err.error?.message || ''
+      const isToolError = response.status === 400 ||
+        errMsg.toLowerCase().includes('tool') ||
+        errMsg.toLowerCase().includes('search')
+      if (isToolError) {
+        response = await fetch(API_URL, {
+          method: 'POST',
+          headers: API_HEADERS,
+          body: buildBody(false),
+        })
+        if (!response.ok) {
+          const err2 = await response.json().catch(() => ({}))
+          onError(err2.error?.message || `API error ${response.status}`)
+          return
+        }
+      } else {
+        onError(errMsg || `API error ${response.status}`)
+        return
+      }
     }
 
     const reader = response.body.getReader()
@@ -1178,7 +1216,21 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, chatLimit - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf, gpsLocationRef.current)
+
+    let returnGapNote = ''
+    if (apiHistory.length > 0) {
+      const lastMsg = apiHistory[apiHistory.length - 1]
+      if (lastMsg.timestamp) {
+        const gap = Date.now() - new Date(lastMsg.timestamp).getTime()
+        const hoursGap = gap / (1000 * 60 * 60)
+        if (hoursGap > 24) {
+          const days = Math.floor(hoursGap / 24)
+          returnGapNote = `\n\nNOTE: The user is returning after ${days === 1 ? 'about a day' : `${days} days`} away. Be warm first — acknowledge the return briefly before anything else. A simple "Good to see you again" or similar, then continue naturally. Do not recap previous conversations unless they ask.`
+        }
+      }
+    }
+
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf, gpsLocationRef.current) + returnGapNote
     const finalSystemPrompt = hiddenContext
       ? systemPrompt + "\n\n" + hiddenContext
       : systemPrompt
@@ -1329,7 +1381,21 @@ export default function ChatScreen() {
 
     const currentMemory = memoryRef.current
     const newRemaining = Math.max(0, chatLimit - newCount)
-    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf, gpsLocationRef.current)
+
+    let returnGapNote = ''
+    if (apiHistory.length > 0) {
+      const lastMsg = apiHistory[apiHistory.length - 1]
+      if (lastMsg.timestamp) {
+        const gap = Date.now() - new Date(lastMsg.timestamp).getTime()
+        const hoursGap = gap / (1000 * 60 * 60)
+        if (hoursGap > 24) {
+          const days = Math.floor(hoursGap / 24)
+          returnGapNote = `\n\nNOTE: The user is returning after ${days === 1 ? 'about a day' : `${days} days`} away. Be warm first — acknowledge the return briefly before anything else. A simple "Good to see you again" or similar, then continue naturally. Do not recap previous conversations unless they ask.`
+        }
+      }
+    }
+
+    const systemPrompt = buildSystemPrompt(currentMemory, newRemaining, productShelf, gpsLocationRef.current) + returnGapNote
     // apiText contains the card context inline — sent to the API, not shown in the UI
     const rawUserHistory = [...apiHistory, { role: 'user', content: apiText, timestamp: new Date().toISOString() }]
     const userHistory = buildApiMessages(rawUserHistory)
