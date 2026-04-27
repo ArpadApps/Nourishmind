@@ -554,58 +554,37 @@ The user sees only your analysis. No validation language, no steps, no word coun
 // ─── Anthropic API streaming ──────────────────────────────────────────────
 
 async function streamNoor(apiMessages, systemPrompt, onToken, onDone, onError) {
-  let searchLocation = undefined
   try {
-    const loc = JSON.parse(localStorage.getItem(LOCATION_KEY))
-    if (loc && loc.city && loc.country) {
-      searchLocation = { type: 'approximate', city: loc.city, country: loc.country }
-    }
-  } catch {}
-
-  const tools = [{
-    type: 'web_search_20250305',
-    name: 'web_search',
-    max_uses: 2,
-    ...(searchLocation && { user_location: searchLocation }),
-  }]
-
-  const buildBody = (includeTools) => JSON.stringify({
-    model: CHAT_MODEL,
-    max_tokens: 400,
-    system: systemPrompt,
-    messages: apiMessages,
-    stream: true,
-    ...(includeTools && { tools }),
-  })
-
-  try {
-    let response = await fetch(API_URL, {
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: API_HEADERS,
-      body: buildBody(true),
+      body: JSON.stringify({
+        model: CHAT_MODEL,
+        max_tokens: 400,
+        system: systemPrompt,
+        messages: apiMessages,
+        stream: true,
+        tools: [{
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 2,
+          user_location: (() => {
+            try {
+              const loc = JSON.parse(localStorage.getItem('noor-location'))
+              if (loc && loc.city && loc.country) {
+                return { type: 'approximate', city: loc.city, country: loc.country }
+              }
+            } catch {}
+            return undefined
+          })()
+        }],
+      }),
     })
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
-      const errMsg = err.error?.message || ''
-      const isToolError = response.status === 400 ||
-        errMsg.toLowerCase().includes('tool') ||
-        errMsg.toLowerCase().includes('search')
-      if (isToolError) {
-        response = await fetch(API_URL, {
-          method: 'POST',
-          headers: API_HEADERS,
-          body: buildBody(false),
-        })
-        if (!response.ok) {
-          const err2 = await response.json().catch(() => ({}))
-          onError(err2.error?.message || `API error ${response.status}`)
-          return
-        }
-      } else {
-        onError(errMsg || `API error ${response.status}`)
-        return
-      }
+      onError(err.error?.message || `API error ${response.status}`)
+      return
     }
 
     const reader = response.body.getReader()
