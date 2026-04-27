@@ -564,20 +564,6 @@ async function streamNoor(apiMessages, systemPrompt, onToken, onDone, onError) {
         system: systemPrompt,
         messages: apiMessages,
         stream: true,
-        tools: [{
-          type: 'web_search_20250305',
-          name: 'web_search',
-          max_uses: 2,
-          user_location: (() => {
-            try {
-              const loc = JSON.parse(localStorage.getItem('noor-location'))
-              if (loc && loc.city && loc.country) {
-                return { type: 'approximate', city: loc.city, country: loc.country }
-              }
-            } catch {}
-            return undefined
-          })()
-        }],
       }),
     })
 
