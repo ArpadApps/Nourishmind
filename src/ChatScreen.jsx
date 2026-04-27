@@ -554,59 +554,91 @@ The user sees only your analysis. No validation language, no steps, no word coun
 // ─── Anthropic API streaming ──────────────────────────────────────────────
 
 async function streamNoor(apiMessages, systemPrompt, onToken, onDone, onError) {
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: API_HEADERS,
-      body: JSON.stringify({
-        model: CHAT_MODEL,
-        max_tokens: 400,
-        system: systemPrompt,
-        messages: apiMessages,
-        stream: true,
-      }),
-    })
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}))
-      onError(err.error?.message || `API error ${response.status}`)
-      return
+  const makeBody = (includeSearch) => {
+    const body = {
+      model: CHAT_MODEL,
+      max_tokens: 400,
+      system: systemPrompt,
+      messages: apiMessages,
+      stream: true,
     }
+    if (includeSearch) {
+      let userLoc = undefined
+      try {
+        const loc = JSON.parse(localStorage.getItem('noor-location'))
+        if (loc && loc.city && loc.country) {
+          userLoc = { type: 'approximate', city: loc.city, country: loc.country }
+        }
+      } catch {}
+      body.tools = [{
+        type: 'web_search_20250305',
+        name: 'web_search',
+        max_uses: 2,
+        ...(userLoc && { user_location: userLoc })
+      }]
+    }
+    return JSON.stringify(body)
+  }
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
+  const tryStream = async (includeSearch) => {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: API_HEADERS,
+        body: makeBody(includeSearch),
+      })
 
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+      if (!response.ok) {
+        if (includeSearch) {
+          // Web search might not be enabled \u2014 retry without it
+          return tryStream(false)
+        }
+        const err = await response.json().catch(() => ({}))
+        onError(err.error?.message || `API error ${response.status}`)
+        return
+      }
 
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop()
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
 
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
-        const data = line.slice(6).trim()
-        if (data === '[DONE]') continue
-        try {
-          const event = JSON.parse(data)
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta?.type === 'text_delta'
-          ) {
-            onToken(event.delta.text.replace(/\u2014/g, ','))
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop()
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6).trim()
+          if (data === '[DONE]') continue
+          try {
+            const event = JSON.parse(data)
+            if (
+              event.type === 'content_block_delta' &&
+              event.delta?.type === 'text_delta'
+            ) {
+              onToken(event.delta.text.replace(/\u2014/g, ','))
+            }
+          } catch {
+            // ignore parse errors on partial SSE lines
           }
-        } catch {
-          // ignore parse errors on partial SSE lines
         }
       }
-    }
 
-    onDone()
-  } catch (err) {
-    onError(err.message)
+      onDone()
+    } catch (err) {
+      if (includeSearch) {
+        return tryStream(false)
+      }
+      onError(err.message)
+    }
   }
+
+  // Try with web search first, fall back to without
+  await tryStream(true)
 }
 
 // ─── Noor avatar ───────────────────────────────────────────────────────────
